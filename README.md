@@ -2,7 +2,9 @@
 
 # Settled
 
-**Try it:** https://settled.35-216-2-121.sslip.io (hosted demo: PayPal stand-in, recorded Claude Sonnet runs, 1-minute hold window; no login).
+Demo video: https://youtu.be/6X8WTiqDRPE | Hosted demo: https://settled.35-216-2-121.sslip.io | Devpost: https://devpost.com/software/settled-v0p3h9
+
+**Try it:** https://settled.35-216-2-121.sslip.io (hosted demo: PayPal stand-in, live Claude Sonnet (`claude-sonnet-5-5`) with usage caps, 1-minute hold window; no login).
 
 **Half & Half: you pay your part of a real bill to the biller through Settled, a stranger matches the rest, and both payments go to the biller and are recorded on its PayPal invoice (run end to end in the PayPal Sandbox with Riverside as its own PayPal app; see Sandbox evidence). The bill is untrusted input: the AI only reads it, and the payee comes from a biller registry and the biller's ledger, never from the document.**
 
@@ -35,7 +37,7 @@ npm start                # http://localhost:3001
 npm test                 # node --test, no network
 ```
 
-`npm run demo:video` builds and starts the exact recording state: stand-in PayPal, recorded Claude runs, a 1-minute hold window and a settle job every 5 seconds, whatever your `.env` says.
+`npm run demo:video` builds and starts the exact recording state: stand-in PayPal, recorded Claude runs (the hosted demo instead runs live Claude Sonnet with caps), a 1-minute hold window and a settle job every 5 seconds, whatever your `.env` says.
 
 Development: `npm run dev:server` and `npm run dev:client` (Vite on 5173 proxies `/api`).
 
@@ -56,10 +58,10 @@ Start with the defaults (`cp .env.example .env`, keys empty). The header must sa
 1. **Watch one bill get settled** (Home). A prepared bill whose holder part already stayed paid for the window goes to a patron card. Approve in the checkout dialog. Under "Your matches" it reads "Charged and recorded on the invoice".
 2. **Try a sample bill**: go to **I need help**, keep Riverside Water, press **Try a sample bill**. You get invoice INV-4821 ($82.40) and three documents: Real bill, Edited amount, Hidden instruction.
 3. **Edited amount**: press **Upload this document** under it. The paper says $382.40; route R3, "Paper amount mismatch BLOCKED".
-4. **Hidden instruction**: number, amount and due date all match the ledger, but the paper says to send money to an email address. Left: the instruction. Right: "ignored by server, and the paper is refused because of it", "Payee unchanged: Riverside Water (registry)". Route R3 `unbacked_instruction`, the only failing check (`server/bills.js`, test `bills.test.js`). Open **Recorded run: Claude Sonnet** under it to see the real model's tool call: it reported the line and did not follow it.
+4. **Hidden instruction**: number, amount and due date all match the ledger, but the paper says to send money to an email address. Left: the instruction. Right: "ignored by server, and the paper is refused because of it", "Payee unchanged: Riverside Water (registry)". Route R3 `unbacked_instruction`, the only failing check (`server/bills.js`, test `bills.test.js`). Open the Claude Sonnet run under it (live, or the labelled recorded run if the API fails or a cap is hit) to see the model's tool call: it reported the line and did not follow it.
 5. **Real bill, Pay my part**: route R1. Pick a share (the biller allows 1/3, 1/2, 2/3), press **Pay my part with PayPal to Riverside Water**, approve. The ledger status reads PARTIALLY_PAID.
 6. **Hold and settle**: go to **I'm a patron**, press **Show open bills** (your own bill is offered to you; the stand-in uses a different PayPal account for the patron), press **Hold**, approve. The match reads "Held, not charged" and "Charged after HH:MM:SS". **Run the settle job now** before then answers "Not charged yet ... until HH:MM:SS". About a minute later the settle job charges it on its own and the screen updates: "Charged and recorded on the invoice". Under **I need help** the bill reads PAID with your part and the patron's match.
-7. **Plan my budget**: press **New session** (top right) for a fresh $300 budget, go to **I'm a patron**, press **Prepare demo bills**, then **Plan my budget**. Plan A: 4 bills, $256.00. Plan B: 5 bills, $278.90. INV-1219 is skipped (ledger timeout). The server computes the options; no option is beaten by another set of these bills. Open **Recorded run: Claude Sonnet** to see the model's own steps: `list_open_bills`, `get_bill_detail` for the bills it chose to check, `draft_allocations`. Choose A and hold a card: prepared bills already passed their window, so it is charged at the next settle run (within 5 seconds).
+7. **Plan my budget**: press **New session** (top right) for a fresh $300 budget, go to **I'm a patron**, press **Prepare demo bills**, then **Plan my budget**. Plan A: 4 bills, $256.00. Plan B: 5 bills, $278.90. INV-1219 is skipped (ledger timeout). The server computes the options; no option is beaten by another set of these bills. Open the Claude Sonnet run to see the model's own steps: `list_open_bills`, `get_bill_detail` for the bills it chose to check, `draft_allocations`. Choose A and hold a card: prepared bills already passed their window, so it is charged at the next settle run (within 5 seconds).
 8. **I'm a biller**: press **Log in** (passcode `demo-biller`, filled in). Turn Sponsorable on or off, set the shutoff date. Urgency is measured only from that date, never from document text.
 9. **Activity**: the "Sandbox evidence" panel lists the real PayPal Sandbox results with their ids (the table below).
 
@@ -136,11 +138,11 @@ Where the model runs, and how each screen says so:
 
 | Setting | What runs | Label on screen |
 |---|---|---|
-| No key (default) | Recorded runs of the real model replay where the input is the recorded one (the Riverside sample papers, the fresh-session plan, the example rules sentence). Anything else uses a text parser and template text | "Recorded run: Claude Sonnet, 2026-11-12", or "stand-in reader" / "stand-in agent" |
+| No key (local default) | Recorded runs of the real model replay where the input is the recorded one (the Riverside sample papers, the fresh-session plan, the example rules sentence). Anything else uses a text parser and template text | "Recorded run: Claude Sonnet, 2026-11-12", or "stand-in reader" / "stand-in agent" |
 | `LLM_BACKEND=account` | Claude Sonnet through your local Claude Code login (Claude Agent SDK, no API key) | "Claude Sonnet (local account)" |
-| `ANTHROPIC_API_KEY` | Claude through the hosted API | "Claude (API key)" |
+| `ANTHROPIC_API_KEY` | Claude through the hosted API. The hosted demo runs this way (`claude-sonnet-5-5`) with the caps below, and falls back to a labelled recorded run or the rule-based stand-in on error or cap | "Claude (API key)" |
 
-The recordings are in `server/recorded-runs/*.json`: every model call, every tool call with its input, the model's text, and timings. They were made with `npm run record:runs` (`LLM_BACKEND=account`, PayPal on the stand-in). Server checks, routes, payees and amounts are always computed live; only the model's part is replayed. The hosted API path has not been run.
+The recordings are in `server/recorded-runs/*.json`: every model call, every tool call with its input, the model's text, and timings. They were made with `npm run record:runs` (`LLM_BACKEND=account`, PayPal on the stand-in). Server checks, routes, payees and amounts are always computed live; only the model's part is replayed. The hosted demo runs the hosted API path live; see "Live model limits and fallback".
 
 ## Environment variables
 
@@ -177,7 +179,7 @@ When a key is set, each user action (read a bill, draft rules, plan a budget) ta
 - The R2 screen does not open a payment link: the invoice returned by the sandbox has no pay-page link, so it says to pay on PayPal's invoice (the link is in the invoice email).
 - Invoices made through the Agent Toolkit carry no due date; the shutoff date set by the biller is what measures urgency.
 - The budget planner compares every affordable set of up to 18 bills. With more eligible bills it keeps the 18 most urgent and says so on screen ("no option is beaten by another set of the 18 most urgent bills").
-- `npm test` runs on the stand-ins only (it forces mock mode). The real-model and sandbox runs are in `VERIFY.md`; the real-model run used a local Claude account, not the hosted API.
+- `npm test` runs on the stand-ins only (it forces mock mode). The real-model and sandbox runs are in `VERIFY.md`; the recorded real-model runs used a local Claude account; the hosted demo calls the API live.
 - The stand-in and the sandbox billers are ours. No real utility is connected; a real biller would need to be onboarded with PayPal.
 - Matching is a selection and commitment device, not fraud proofing. It confirms that this invoice has a completed payment made through Settled by the holder's PayPal login. It cannot tell whose wallet funded it or whether it is later disputed. PayPal buyer protection claims can arrive up to 180 days after a payment; a 3-day window does not cover that, and the card says so.
 - Payment disputes on the patron side are the biller's to handle as a merchant.
