@@ -1,4 +1,4 @@
-import { llmLabel, modes } from '../config.js'
+import { llmLabel } from '../config.js'
 import { buildAllocations, validateOption } from '../allocation.js'
 import { evaluate, openCandidates, cardView } from '../matching.js'
 import { remainingCents, rulesOf } from '../patron.js'
@@ -10,7 +10,8 @@ import { now } from '../clock.js'
 import { toCents, usd } from '../money.js'
 import { z } from 'zod'
 import { runToolLoop } from './claude.js'
-import { recordingLabel, replayable, transcriptOf } from './recordedRuns.js'
+import { recordingLabel, recordedFor, transcriptOf } from './recordedRuns.js'
+import { beginRun, NO_RUN, withReason } from './liveGuard.js'
 
 // "Use my last $300 this month": the user's own words can lower the budget. They can never raise it above the saved rule.
 export function budgetFromText(text, patron) {
@@ -69,7 +70,7 @@ export const planKey = (userText, options, skipped) => JSON.stringify({ userText
 /**
  * Plan how to spend a budget. The options come from code (allocation.js); the model, when live, only reads and describes them.
  */
-export async function planAllocations(patron, userText) {
+export async function planAllocations(patron, userText, ip) {
   const rules = rulesOf(patron)
   const budgetCents = budgetFromText(userText, patron)
   const events = []
@@ -83,24 +84,30 @@ export async function planAllocations(patron, userText) {
   events.push({ tool: 'draft_allocations', source: 'server', detail: `${plan.options.length} option(s)` })
   let narrative
   let source = 'stand-in agent'
-  const key = planKey(userText, plan.options, skipped)
-  const recording = replayable('plan', (run) => run.input.planKey === key)
-  if (recording) {
-    source = recordingLabel(recording)
-    narrative = recording.result.narrative
-    events.push(...recording.steps.filter((st) => st.type === 'tool_call').map((st) => ({ tool: st.name, ok: st.ok !== false, source: 'recorded model', detail: st.input?.invoiceNumber || '' })))
-  } else if (modes.llm === 'live' && plan.options.length) {
+  let recording = null
+  // Live model first (one run for the whole plan). Not live, capped or errored: the recorded run for this exact plan, else the stand-in.
+  const run = plan.options.length ? beginRun(ip) : NO_RUN
+  const live = await run.call(() => runToolLoop({
+    system: PLAN_SYSTEM,
+    user: userText || 'Use my budget, most urgent first.',
+    tools: LIVE_TOOLS,
+    runTool: planTools({ candidates, skipped, summary, plan }),
+  }))
+  if (live.ok) {
     source = llmLabel()
-    const loop = await runToolLoop({
-      system: PLAN_SYSTEM,
-      user: userText || 'Use my budget, most urgent first.',
-      tools: LIVE_TOOLS,
-      runTool: planTools({ candidates, skipped, summary, plan }),
-    })
-    narrative = loop.text
-    events.push(...loop.events)
+    narrative = live.value.text
+    events.push(...live.value.events)
   } else {
-    narrative = mockNarrative(plan)
+    const key = planKey(userText, plan.options, skipped)
+    recording = recordedFor('plan', (r) => r.input.planKey === key)
+    if (recording) {
+      source = withReason(recordingLabel(recording), live.reason)
+      narrative = recording.result.narrative
+      events.push(...recording.steps.filter((st) => st.type === 'tool_call').map((st) => ({ tool: st.name, ok: st.ok !== false, source: 'recorded model', detail: st.input?.invoiceNumber || '' })))
+    } else {
+      if (live.reason) source = withReason('Rule-based stand-in', live.reason)
+      narrative = mockNarrative(plan)
+    }
   }
   patron.patron = { ...patron.patron, lastPlan: { budgetCents, capCents: rules.perBillCapCents, options: plan.options } }
   return { options: plan.options, tradeoff: !!plan.tradeoff, skipped, narrative, budgetCents, capCents: rules.perBillCapCents, enumerated: plan.enumerated, truncated: !!plan.truncated, source, events, recording: recording ? transcriptOf(recording, 'Recorded on the same prepared bills, budget and request.') : null }

@@ -9,23 +9,29 @@ const getClient = () => {
   return client
 }
 
+export const setClientForTests = (fake) => { client = fake }
+
 export const textOf = (content) => content.filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim()
 
-// One forced tool call that returns structured JSON (used for reading a document).
+// One required tool call that returns structured JSON (used for reading a document).
 export async function callForJson({ system, user, tool }) {
   traceStep({ type: 'model_call', mode: 'structured', tools: [tool.name], model: config.anthropicModel })
   if (config.llmBackend === 'account') return accountJson({ system, user, tool })
-  const response = await getClient().messages.create({
-    model: config.anthropicModel,
-    max_tokens: 2000,
-    system,
-    tools: [tool],
-    tool_choice: { type: 'tool', name: tool.name },
-    messages: [{ role: 'user', content: user }],
-  })
-  const use = response.content.find((b) => b.type === 'tool_use')
-  if (!use) throw new Error('The model returned no structured result.')
-  return use.input
+  // This model rejects forced tool_choice, so the request stays on auto and the system prompt names the tool.
+  const instruction = `${system}\nYou must answer by calling the tool ${tool.name}.`
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await getClient().messages.create({
+      model: config.anthropicModel,
+      max_tokens: 2000,
+      system: attempt === 0 ? instruction : `${instruction}\nYou must answer by calling the tool ${tool.name}. Do not reply in plain text.`,
+      tools: [tool],
+      tool_choice: { type: 'auto' },
+      messages: [{ role: 'user', content: user }],
+    })
+    const use = response.content.find((b) => b.type === 'tool_use' && b.name === tool.name)
+    if (use) return use.input
+  }
+  throw new Error('The model returned no structured result.')
 }
 
 export async function callForText({ system, user }) {

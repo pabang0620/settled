@@ -26,6 +26,12 @@ export function replayable(scene, matches) {
   return run && matches(run) ? run : null
 }
 
+// The recording for a scene regardless of mode: the fallback when the live model is capped or errors.
+export function recordedFor(scene, matches) {
+  const run = runs.get(scene)
+  return run && matches(run) ? run : null
+}
+
 export const transcriptOf = (run, note) => ({
   note,
   label: recordingLabel(run),

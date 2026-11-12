@@ -150,6 +150,9 @@ The recordings are in `server/recorded-runs/*.json`: every model call, every too
 | `FORCE_MOCK` | `1` ignores all keys and stays on stand-ins | `0` |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Live Claude reader and explanations through the hosted API; empty = stand-in agent | empty, `claude-sonnet-5-5` |
 | `LLM_BACKEND` | `account` runs the model through your local Claude Code login (Claude Agent SDK, local development only, never reads `ANTHROPIC_API_KEY`). The UI labels it "Claude Sonnet (local account)". `FORCE_MOCK=1` turns it off. Empty with no key: recorded runs replay where they apply | empty |
+| `LLM_LIVE_PER_IP_HOUR` | Live model runs allowed per client IP per hour. One run is one user action (read a bill, draft rules, plan a budget), however many model calls it makes | `10` |
+| `LLM_LIVE_PER_DAY` | Live model runs allowed per host per day (rolling 24 hours, all visitors together) | `150` |
+| `LLM_LIVE_TIMEOUT_MS` | A live model call slower than this counts as an error | `60000` |
 | `MATCH_MODE` | `hold` = AUTHORIZE now, capture after the window. `capture_after_window` = the card appears only after the window and one CAPTURE order is made (use when the biller's own app credentials are not available) | `hold` |
 | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | Sandbox app credentials for payee orders through the SDK (both required for sandbox mode) | empty |
 | `PAYPAL_SDK_LOG` | `1` writes one-line PayPal SDK diagnostics (status, reason, debug id; never request bodies) to stderr | empty |
@@ -162,6 +165,10 @@ The recordings are in `server/recorded-runs/*.json`: every model call, every too
 | `OPS_KEY` | Header `x-ops-key` for `POST /api/ops/settle` | empty (endpoint disabled) |
 | `SANDBOX_SELF_BILLER_MERCHANT_ID` | Sandbox demo mode: Riverside is played by the business account behind `PAYPAL_CLIENT_ID` (one REST app runs the whole path) | empty |
 | `PUBLIC_FEED` | `1` shows every holder's bill to every patron; `0` keeps sample bills private to their session | `0` |
+
+## Live model limits and fallback
+
+When a key is set, each user action (read a bill, draft rules, plan a budget) takes one run from a per-IP hourly cap and a per-host daily cap (`LLM_LIVE_PER_IP_HOUR`, `LLM_LIVE_PER_DAY`). If the cap is reached, or the model errors, times out or returns something invalid, the action still completes: it replays the recorded real run when this exact scene was recorded, otherwise the rule-based stand-in. The screen labels the source ("Recorded run: ..." or "Rule-based stand-in", plus a reason such as "live limit reached" or "live model unavailable"). Money rules never depend on the model, so the route, amounts and payee are the same on every path. Behind a reverse proxy on the same host the client IP comes from `X-Forwarded-For`.
 
 ## Limits, stated plainly
 

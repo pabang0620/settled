@@ -15,6 +15,7 @@ const { seedSession, seedPlanBills } = await import('../server/seed.js')
 const { analyzeDocument } = await import('../server/agent/bills.js')
 const { planAllocations, planKey } = await import('../server/agent/allocations.js')
 const { draftPatronRules } = await import('../server/agent/rules.js')
+const { LOCAL_SCRIPT } = await import('../server/agent/liveGuard.js')
 const { startTrace, endTrace } = await import('../server/agent/trace.js')
 const { RUNS_DIR } = await import('../server/agent/recordedRuns.js')
 
@@ -48,7 +49,7 @@ if (only === 'all' || only === 'docs') {
   const session = createSession()
   const seeded = await seedSession(session, 'riverside')
   for (const doc of seeded.documents) {
-    const { result, trace } = await traced(() => analyzeDocument(session, doc.id))
+    const { result, trace } = await traced(() => analyzeDocument(session, doc.id, LOCAL_SCRIPT))
     const reader = trace.steps.find((s) => s.type === 'tool_call' && s.name === 'report_bill_fields')
     save(`document-${doc.kind}`, {
       input: { documentText: doc.text },
@@ -61,7 +62,7 @@ if (only === 'all' || only === 'plan') {
   const patron = createSession()
   await seedPlanBills(patron)
   const text = 'Use my last $300 this month, most urgent first'
-  const { result, trace } = await traced(() => planAllocations(patron, text))
+  const { result, trace } = await traced(() => planAllocations(patron, text, LOCAL_SCRIPT))
   save('plan', {
     input: { text, planKey: planKey(text, result.options, result.skipped) },
     ...trace,
@@ -70,7 +71,7 @@ if (only === 'all' || only === 'plan') {
 }
 if (only === 'all' || only === 'rules') {
   const text = 'I can give about $200 a month, up to $120 per bill, and the holder should pay at least 1/2. I live in OH.'
-  const { result, trace } = await traced(() => draftPatronRules(text))
+  const { result, trace } = await traced(() => draftPatronRules(text, LOCAL_SCRIPT))
   const call = trace.steps.find((s) => s.type === 'tool_call')
   save('rules', { input: { text }, ...trace, result: { toolInput: call.input, rules: result } })
 }

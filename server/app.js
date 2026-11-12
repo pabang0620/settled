@@ -10,6 +10,8 @@ const distDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../d
 export function createApp() {
   const app = express()
   app.disable('x-powered-by')
+  // Behind nginx on the same host: req.ip is the real client address (per-IP live model cap).
+  app.set('trust proxy', 'loopback')
   app.use(express.json({ limit: '50kb' }))
   app.use('/api', api)
   if (existsSync(distDir)) {

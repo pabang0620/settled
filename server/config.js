@@ -15,6 +15,11 @@ const selfBillerMerchantId = paypalKeysSet ? process.env.SANDBOX_SELF_BILLER_MER
 const DEFAULT_WINDOW_MINUTES = paypalKeysSet ? PRODUCTION_WINDOW_MINUTES : 1
 const envNumber = (name, fallback) => (process.env[name] === undefined || process.env[name] === '' ? fallback : Number(process.env[name]))
 
+const positiveNumber = (name, fallback) => {
+  const value = envNumber(name, fallback)
+  return Number.isFinite(value) && value >= 0 ? value : fallback
+}
+
 export const config = {
   port,
   publicUrl,
@@ -33,6 +38,10 @@ export const config = {
   // capture_after_window = the card appears only after the window, then one CAPTURE order (nothing to release).
   matchMode,
   seedDailyLimit: Number(process.env.SEED_DAILY_LIMIT || 50),
+  // Live model protection: model runs per client IP per hour, per host per day, and a per-call timeout. See agent/liveGuard.js.
+  llmLivePerIpHour: positiveNumber('LLM_LIVE_PER_IP_HOUR', 10),
+  llmLivePerDay: positiveNumber('LLM_LIVE_PER_DAY', 150),
+  llmLiveTimeoutMs: positiveNumber('LLM_LIVE_TIMEOUT_MS', 60000),
   billerPasscode: process.env.BILLER_PASSCODE || 'demo-biller',
   opsKey: process.env.OPS_KEY || '',
   // 1 = every patron sees every holder's bill (an open marketplace). 0 = sample bills are only visible to the session that created them.
