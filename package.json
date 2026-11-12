@@ -1,0 +1,33 @@
+{
+  "name": "settled",
+  "version": "1.0.0",
+  "description": "Settled: patrons pay strangers' verified bills directly to billers, with Half and Half matching",
+  "scripts": {
+    "build": "vite build",
+    "start": "node server/index.js",
+    "dev:server": "node --watch server/index.js",
+    "dev:client": "vite",
+    "test": "FORCE_MOCK=1 LLM_BACKEND= node --test test/*.test.js",
+    "smoke:sdk": "node scripts/sdk-smoke.js"
+  },
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.322",
+    "@anthropic-ai/sdk": "^1.6.0",
+    "@paypal/agent-toolkit": "^1.11.0",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "paypal": "github:context-plugins/paypal-typescript-sdk#main",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.2.1",
+    "vite": "^8.3.6"
+  }
+}
