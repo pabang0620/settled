@@ -1,6 +1,6 @@
 # VERIFY: sandbox checks to run by hand
 
-Results from the 2026-11-12 sandbox run are inline under each item, with the PayPal ids. Passed: S1, V2, X1, V10 (a and b), V4 (refund), V8 (authorize, capture, and void as the biller app, and in-app hold, settle and release), V3 and V7 (single-merchant sandbox demo mode, see "In-app sandbox run" below), X3 (browser return for holder and patron). Still blocked on a person: V3 with the separate Riverside app (that app needs the Invoicing feature). Partial: V5, X3. Skipped: V1, V9. X2 ran through the local Claude account, not the hosted API. Items still open keep their "Do" steps below; run them in order and stop at the first failure to use its fallback.
+Results from the 2026-11-12 sandbox run are inline under each item, with the PayPal ids. Passed: S1, V2, X1, V10 (a and b), V4 (refund), V8 (authorize, capture, and void as the biller app, and in-app hold, settle and release), V3 and V7 (single-merchant sandbox demo mode, see "In-app sandbox run" below), X3 (browser return for holder and patron). Still blocked on a person: V3 with the separate Riverside app (that app needs the Invoicing feature). Partial: V5. Skipped: V1, V9. X2 ran through the local Claude account, not the hosted API. Items still open keep their "Do" steps below; run them in order and stop at the first failure to use its fallback.
 
 ## Setup (once)
 

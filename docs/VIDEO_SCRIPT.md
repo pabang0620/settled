@@ -23,4 +23,4 @@ Use a fresh browser profile (or press **New session** first). Browser at 1440x90
 Notes for recording:
 - Do not show step 8 (biller console) unless time allows; it is in the README and DEVPOST.
 - Say "recorded run" whenever the transcript is on screen. Do not call the stand-in text a model.
-- Do not show an invoice reaching PAID in the PayPal Sandbox: VERIFY.md V3 is blocked, so PAID is shown on the stand-in only, and the header says "PayPal stand-in".
+- Show the invoice reaching PAID in the PayPal Sandbox only in the `npm run demo:sandbox` scene (VERIFY.md V3 and V7 passed there); on the stand-in the header says "PayPal stand-in".

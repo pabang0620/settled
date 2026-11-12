@@ -6,6 +6,8 @@ The bill is untrusted. The payee isn't.
 
 Demo only. No real money, no real billers, no real people. Everything below runs on PayPal Sandbox, or on a built-in stand-in when no keys are set.
 
+Unlike Austin Energy's gift payments ([source](https://austinenergy.com/about/news/news-releases/2024/give-the-gift-of-comfort-help-someone-in-need)) and Istanbul's Askıda Fatura ([source](https://www.birgun.net/haber/askida-fatura-projesi-kac-haneye-destek-saglandigi-aciklandi-661887)), which run through the biller's own desk, Settled lets an unrelated person match half of a bill only while the holder's part is still open, and the ledger, not the photo, decides where the money goes.
+
 ## What it does
 
 1. A person with a past-due utility bill (the **holder**) uploads the document. Claude reads it and reports what it says, including any "send payment to ..." line. The server compares it with the biller's own invoice (the ledger) and decides one of three paths:

@@ -6,7 +6,7 @@ Demo only. No real money, no real billers, no real people. Everything runs on Pa
 
 ## Inspiration
 
-About 21.5 million U.S. households, roughly 1 in 6, are behind on their energy bills ([NEADA, February 2026 Energy Hardship Report](https://neada.org/?p=8468)). Strangers do want to help. Austin Energy lets anyone "pay for any amount of a customer's bill" and "give anonymously" ([Austin Energy, 2024](https://austinenergy.com/about/news/news-releases/2024/give-the-gift-of-comfort-help-someone-in-need)). Istanbul's "Askıda Fatura" (pay-it-forward bill) program has let donors pay other people's water and gas bills 485,815 times ([BirGün, 2025](https://www.birgun.net/haber/askida-fatura-projesi-kac-haneye-destek-saglandigi-aciklandi-661887)). What is missing is a safe way for an unrelated person to pay half of a stranger's bill when the only evidence is a photo or a PDF. A document can be edited, and it can carry a line like "our bank details changed, send payment to ...". We asked what happens if the document is never allowed to decide where money goes.
+About 21.5 million U.S. households, roughly 1 in 6, are behind on their energy bills ([NEADA, February 2026 Energy Hardship Report](https://neada.org/?p=8468)). Strangers do want to help. Austin Energy lets anyone "pay for any amount of a customer's bill" and "give anonymously" ([Austin Energy, 2024](https://austinenergy.com/about/news/news-releases/2024/give-the-gift-of-comfort-help-someone-in-need)). Istanbul's "Askıda Fatura" (pay-it-forward bill) program has let donors pay other people's water and gas bills 485,815 times ([BirGün, 2025](https://www.birgun.net/haber/askida-fatura-projesi-kac-haneye-destek-saglandigi-aciklandi-661887)). Those programs run through the biller's own desk, so the biller already holds the account and no document has to be trusted; Settled lets an unrelated person match half of a bill only while the holder's part is still open, and the ledger, not the photo, decides where the money goes. What is missing is a safe way for an unrelated person to pay half of a stranger's bill when the only evidence is a photo or a PDF. A document can be edited, and it can carry a line like "our bank details changed, send payment to ...". We asked what happens if the document is never allowed to decide where money goes.
 
 ## What it does
 
@@ -66,8 +66,8 @@ A mid-size water or power utility that already sends PayPal invoices and runs a 
 
 ## What's next
 
-- Turn on the Invoicing feature for the biller app and run the remaining checks: recording both payments, the PAID state, and a full in-app hold, wait and capture.
-- Drive the real PayPal approval page and return flow from the browser, and receive refund and dispute webhooks instead of polling.
+- Turn on the Invoicing feature for a separate biller app and run the same record, PAID and hold flow with the biller as its own PayPal app.
+- Receive refund and dispute webhooks instead of polling.
 - Run the hosted API path for the reader, and host a public demo.
 - Institutional patrons: a city fund or an employer sets rules once ("water bills in our ZIP codes, holder pays at least 1/2") and approves a batch of cards.
 - Other biller invoices with the same ledger check: rent through a property manager that invoices on PayPal, or a clinic's patient balance.
