@@ -1,0 +1,67 @@
+{
+  "scene": "document-edited_amount",
+  "model": "claude-sonnet-5-5",
+  "backend": "Claude Agent SDK, local Claude Code login (no API key)",
+  "recordedAt": "2026-11-12",
+  "input": {
+    "documentText": "Riverside Water\nSTATEMENT OF ACCOUNT\nInvoice: INV-4821\nAccount: RI-4478\nAmount due: $382.40\nDue: 2026-11-05"
+  },
+  "steps": [
+    {
+      "type": "model_call",
+      "mode": "structured",
+      "tools": [
+        "report_bill_fields"
+      ],
+      "model": "claude-sonnet-5-5",
+      "atMs": 0
+    },
+    {
+      "type": "tool_call",
+      "name": "report_bill_fields",
+      "input": {
+        "billerName": "Riverside Water",
+        "invoiceNumber": "INV-4821",
+        "accountRef": "RI-4478",
+        "amountDue": "$382.40",
+        "dueDate": "2026-11-05",
+        "instructions": []
+      },
+      "atMs": 2430
+    },
+    {
+      "type": "text",
+      "text": "The bill is recorded: Riverside Water, invoice INV-4821, account RI-4478, $382.40 due 2026-11-05. The document had no payment instructions. That due date is already a week past today (2026-11-12), so the bill is overdue.",
+      "atMs": 4632
+    },
+    {
+      "type": "model_call",
+      "mode": "text",
+      "tools": [],
+      "model": "claude-sonnet-5-5",
+      "atMs": 4632
+    },
+    {
+      "type": "text",
+      "text": "This bill can't be paid here right now because the amount on the paper ($382.40) doesn't match the amount in our records ($82.40), even though the biller (Riverside Water), invoice number INV-4821, and due date (2026-11-05) all match. Please retake a clear photo of the bill or double-check the amount and invoice number on the paper. No payment instructions were found in the document, so nothing was ignored.",
+      "atMs": 7774
+    }
+  ],
+  "durationMs": 7774,
+  "result": {
+    "readerInput": {
+      "billerName": "Riverside Water",
+      "invoiceNumber": "INV-4821",
+      "accountRef": "RI-4478",
+      "amountDue": "$382.40",
+      "dueDate": "2026-11-05",
+      "instructions": []
+    },
+    "explanation": "This bill can't be paid here right now because the amount on the paper ($382.40) doesn't match the amount in our records ($82.40), even though the biller (Riverside Water), invoice number INV-4821, and due date (2026-11-05) all match. Please retake a clear photo of the bill or double-check the amount and invoice number on the paper. No payment instructions were found in the document, so nothing was ignored.",
+    "route": "R3",
+    "code": "amount_match",
+    "failedChecks": [
+      "amount_match"
+    ]
+  }
+}

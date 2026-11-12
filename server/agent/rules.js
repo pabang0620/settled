@@ -1,8 +1,9 @@
-import { modes } from '../config.js'
+import { llmLabel, modes } from '../config.js'
 import { DEFAULT_RULES, rulesSchema } from '../patron.js'
 import { parse } from '../http.js'
 import { toCents } from '../money.js'
 import { callForJson } from './claude.js'
+import { recordingLabel, replayable } from './recordedRuns.js'
 
 const TOOL = {
   name: 'draft_rules',
@@ -17,9 +18,19 @@ const TOOL = {
 }
 
 // Draft only. The patron reads the draft and saves it; the server validates it with the same zod schema.
+export const RULES_SYSTEM = 'Draft giving rules from the sentence. Do not invent numbers that are not in it.'
+
+// Which reader drafted the rules, for the label next to the draft.
+export function draftSource(text) {
+  const recording = replayable('rules', (run) => run.input.text === text)
+  if (recording) return recordingLabel(recording)
+  return modes.llm === 'live' ? llmLabel() : 'stand-in parser'
+}
+
 export async function draftPatronRules(text) {
-  if (modes.llm === 'live') {
-    const raw = await callForJson({ system: 'Draft giving rules from the sentence. Do not invent numbers that are not in it.', user: text, tool: TOOL })
+  const recording = replayable('rules', (run) => run.input.text === text)
+  if (recording || modes.llm === 'live') {
+    const raw = recording ? recording.result.toolInput : await callForJson({ system: RULES_SYSTEM, user: text, tool: TOOL })
     return parse(rulesSchema, {
       ...DEFAULT_RULES,
       ...(raw.monthlyBudgetDollars ? { monthlyBudgetCents: Math.round(raw.monthlyBudgetDollars * 100) } : {}),

@@ -92,7 +92,8 @@ test('the agent plan on the prepared demo bills: A = 4 bills $256.00, B = 5 bill
   assert.equal(plan.options[0].totalCents, 25600)
   assert.equal(plan.options[1].totalCents, 27890)
   assert.ok(plan.events.some((e) => e.tool === 'draft_allocations'))
-  assert.match(plan.narrative, /Plan A/)
+  // A fresh patron with the default request gets the recorded Claude run; its text names option A too.
+  assert.match(plan.narrative, /(Plan|Option) A/)
   const batch = await proposeBatch(patron, 'A')
   assert.deepEqual(batch.cards.map((c) => c.invoiceNumber), ['INV-1187', 'INV-1203', 'INV-1211', 'INV-1214'])
   assert.equal(batch.cards[0].matchCents, 4120)

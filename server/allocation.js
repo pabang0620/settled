@@ -4,7 +4,9 @@ import { now } from './clock.js'
 // Two objectives pull apart: cover the bills the biller says are about to be shut off, or close the most bills.
 // The model may describe the options; it can not add, remove or reprice one.
 export const URGENT_WINDOW_DAYS = 5
-const MAX_ENUMERATED = 18
+// Every subset of the pool is enumerated, so the pool is capped. Above the cap, the most urgent bills are kept
+// and the plan says the options are optimal among those bills only.
+export const MAX_ENUMERATED = 18
 
 export const isUrgent = (c) => c.urgency?.kind === 'shutoff' && c.urgency.days <= URGENT_WINDOW_DAYS
 
@@ -21,8 +23,10 @@ export function dominates(x, y) {
   return noWorse && better
 }
 
+export const poolOf = (candidates, capCents) => candidates.filter((c) => c.matchCents <= capCents).sort(byUrgency).slice(0, MAX_ENUMERATED)
+
 export function feasibleSubsets(candidates, { budgetCents, capCents }) {
-  const pool = candidates.filter((c) => c.matchCents <= capCents).slice(0, MAX_ENUMERATED)
+  const pool = poolOf(candidates, capCents)
   const out = []
   for (let mask = 1; mask < (1 << pool.length); mask += 1) {
     const subset = pool.filter((_, i) => mask & (1 << i))
@@ -57,7 +61,9 @@ const byUrgency = (a, b) => {
  */
 export function buildAllocations(candidates, { budgetCents, capCents }) {
   const subsets = feasibleSubsets(candidates, { budgetCents, capCents })
-  if (!subsets.length) return { options: [], considered: candidates.length }
+  const inCap = candidates.filter((c) => c.matchCents <= capCents).length
+  const scope = { considered: candidates.length, enumerated: Math.min(inCap, MAX_ENUMERATED), truncated: inCap > MAX_ENUMERATED }
+  if (!subsets.length) return { options: [], ...scope }
   const urgentFirst = best(subsets, [['urgent', 1], ['count', 1], ['spend', -1]])
   const mostClosed = best(subsets, [['count', 1], ['urgent', 1], ['spend', -1]])
   const raw = [{ id: 'A', objective: 'urgent_first', pick: urgentFirst }, { id: 'B', objective: 'most_closed', pick: mostClosed }]
@@ -78,7 +84,7 @@ export function buildAllocations(candidates, { budgetCents, capCents }) {
       position: index,
     }
   })
-  return { options, considered: candidates.length, tradeoff: options.length > 1 }
+  return { options, ...scope, tradeoff: options.length > 1 }
 }
 
 // Server-side recheck before an option is shown or chosen.

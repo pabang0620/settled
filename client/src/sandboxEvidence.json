@@ -2,13 +2,92 @@
   "date": "2026-11-12",
   "note": "Recorded results of real PayPal Sandbox calls made through the APIMatic paypal SDK and the PayPal Agent Toolkit. Static data: this panel does not call PayPal.",
   "items": [
-    { "check": "S1", "what": "SDK smoke: orders.getOrder, payments.getCapturedPayment, payments.getAuthorizedPayment", "status": "pass", "ids": ["token and sandbox host reachable (404 on made-up ids)"] },
-    { "check": "V2", "what": "Holder part: payee order to Riverside (payee.merchant_id H5YUF48MJXAB4), approved as holder, captured", "status": "pass", "ids": ["order 1YM58126NG301100N", "capture 5V973346CM946373X COMPLETED", "fee 0.66 on 5.00, paid by the payee"] },
-    { "check": "V8", "what": "Match hold: AUTHORIZE order for Riverside, approved as patron, authorized, then captured", "status": "pass", "ids": ["order 98417086007169356", "authorization 3AR14874A6278953U CREATED", "capture 94T771459L404044W COMPLETED, final_capture"] },
-    { "check": "V8", "what": "Release a hold: void as the biller app", "status": "pass", "ids": ["authorization 6KH08201LE3777732 VOIDED", "authorization 0ET240840K915803T VOIDED"] },
-    { "check": "V8", "what": "Void with the shared app credentials", "status": "blocked", "ids": ["authorization 9HV98331813657537: 403 PERMISSION_DENIED, so release uses the biller's own app"] },
-    { "check": "V4", "what": "Biller refund of the holder capture, then capture status read by the app", "status": "pass", "ids": ["refund 07J41073AN345254V COMPLETED", "capture 70N07908P40881933 reads REFUNDED"] },
-    { "check": "V10a", "what": "Same PayPal-Request-Id twice returns the same order", "status": "pass", "ids": ["order 7CL75003489574914 both times"] },
-    { "check": "V3", "what": "Record both payments on the biller invoice and reach PAID", "status": "blocked", "ids": ["Riverside app has no Invoicing feature (403 on record_payment_for_invoice); verified in the stand-in only"] }
+    {
+      "check": "S1",
+      "what": "SDK smoke: orders.getOrder, payments.getCapturedPayment, payments.getAuthorizedPayment",
+      "status": "pass",
+      "ids": [
+        "token and sandbox host reachable (404 on made-up ids)"
+      ]
+    },
+    {
+      "check": "X1",
+      "what": "APIMatic paypal SDK runs the live money path; PayPal context plugin installed",
+      "status": "pass",
+      "ids": [
+        "claude plugin list: paypal@context-plugins 0.4.1",
+        "captures 5V973346CM946373X and 94T771459L404044W through the SDK"
+      ]
+    },
+    {
+      "check": "V2",
+      "what": "Holder part: payee order to Riverside (payee.merchant_id H5YUF48MJXAB4), approved as holder, captured",
+      "status": "pass",
+      "ids": [
+        "order 1YM58126NG301100N",
+        "capture 5V973346CM946373X COMPLETED",
+        "fee 0.66 on 5.00, paid by the payee"
+      ]
+    },
+    {
+      "check": "V8",
+      "what": "Match hold: AUTHORIZE order for Riverside, approved as patron, authorized, then captured",
+      "status": "pass",
+      "ids": [
+        "order 98417086007169356",
+        "authorization 3AR14874A6278953U CREATED",
+        "capture 94T771459L404044W COMPLETED, final_capture"
+      ]
+    },
+    {
+      "check": "V8",
+      "what": "Release a hold: void as the biller app",
+      "status": "pass",
+      "ids": [
+        "authorization 6KH08201LE3777732 VOIDED",
+        "authorization 0ET240840K915803T VOIDED"
+      ]
+    },
+    {
+      "check": "V8",
+      "what": "Void with the shared app credentials",
+      "status": "blocked",
+      "ids": [
+        "authorization 9HV98331813657537: 403 PERMISSION_DENIED, so release uses the biller's own app"
+      ]
+    },
+    {
+      "check": "V4",
+      "what": "Biller refund of the holder capture, then capture status read by the app",
+      "status": "pass",
+      "ids": [
+        "refund 07J41073AN345254V COMPLETED",
+        "capture 70N07908P40881933 reads REFUNDED"
+      ]
+    },
+    {
+      "check": "V10a",
+      "what": "Same PayPal-Request-Id twice returns the same order",
+      "status": "pass",
+      "ids": [
+        "order 7CL75003489574914 both times"
+      ]
+    },
+    {
+      "check": "V10b",
+      "what": "Void answers 204 with no body; the adapter settles it by reading the authorization",
+      "status": "pass",
+      "ids": [
+        "authorization 0ET240840K915803T: 204, read back VOIDED"
+      ]
+    },
+    {
+      "check": "V3",
+      "what": "Record both payments on the biller invoice and reach PAID",
+      "status": "blocked",
+      "ids": [
+        "Riverside app has no Invoicing feature (403 on record_payment_for_invoice); verified in the stand-in only"
+      ]
+    }
   ]
 }

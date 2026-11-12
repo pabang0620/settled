@@ -1,0 +1,96 @@
+{
+  "scene": "plan",
+  "model": "claude-sonnet-5-5",
+  "backend": "Claude Agent SDK, local Claude Code login (no API key)",
+  "recordedAt": "2026-11-12",
+  "input": {
+    "text": "Use my last $300 this month, most urgent first",
+    "planKey": "{\"userText\":\"Use my last $300 this month, most urgent first\",\"options\":[[\"A\",4,25600,[\"INV-1187\",\"INV-1203\",\"INV-1211\",\"INV-1214\"]],[\"B\",5,27890,[\"INV-1187\",\"INV-1211\",\"INV-1214\",\"INV-1226\",\"INV-1231\"]]],\"skipped\":[\"INV-1219\"]}"
+  },
+  "steps": [
+    {
+      "type": "model_call",
+      "mode": "tool_loop",
+      "tools": [
+        "list_open_bills",
+        "get_bill_detail",
+        "draft_allocations"
+      ],
+      "model": "claude-sonnet-5-5",
+      "atMs": 2
+    },
+    {
+      "type": "tool_call",
+      "name": "list_open_bills",
+      "input": {},
+      "ok": true,
+      "result": "{\"eligible\":[{\"billId\":\"cc71f140-0b4d-4e76-b008-88529fdaad85\",\"invoiceNumber\":\"INV-1187\",\"matchCents\":4120,\"urgency\":{\"kind\":\"shutoff\",\"date\":\"2026-11-16\",\"days\":4}},{\"billId\":\"02fe55dc-c3a5-4b64-a096-5a040aa8bcf6\",\"invoiceNumber\":\"INV-1203\",\"matchCents\":11840,\"urgency\":{\"kind\":\"shutoff\",\"date\":\"2026-11-17\",\"days\":5}},{\"billId\":\"a419b2bc-c2b8-42ec-98fc-32027ebce824\",\"invoiceNumber\":\"INV-1211\",\"matchCents\":4410,\"urgency\":{\"kind\":\"past_due\",\"date\":\"2026-11-02\",\"days\":10}},{\"billId\":\"03f90172-e8c6-4407-a0a4-dd2488870486\",\"invoiceNumber\":\"INV-1214\",\"matchCents\":5230,\"urgency\":{\"kind\":\"past_due\",\"d",
+      "atMs": 2344
+    },
+    {
+      "type": "tool_call",
+      "name": "get_bill_detail",
+      "input": {
+        "invoiceNumber": "INV-1219"
+      },
+      "ok": true,
+      "result": "{\"invoiceNumber\":\"INV-1219\",\"skipped\":true,\"reason\":\"ledger timeout\"}",
+      "atMs": 3485
+    },
+    {
+      "type": "tool_call",
+      "name": "get_bill_detail",
+      "input": {
+        "invoiceNumber": "INV-1187"
+      },
+      "ok": true,
+      "result": "{\"invoiceNumber\":\"INV-1187\",\"matchCents\":4120,\"holderShare\":\"1/2\",\"ledgerStatus\":\"PARTIALLY_PAID\",\"urgency\":{\"kind\":\"shutoff\",\"date\":\"2026-11-16\",\"days\":4},\"shutoffSetBy\":\"biller\"}",
+      "atMs": 3809
+    },
+    {
+      "type": "tool_call",
+      "name": "get_bill_detail",
+      "input": {
+        "invoiceNumber": "INV-1203"
+      },
+      "ok": true,
+      "result": "{\"invoiceNumber\":\"INV-1203\",\"matchCents\":11840,\"holderShare\":\"1/2\",\"ledgerStatus\":\"PARTIALLY_PAID\",\"urgency\":{\"kind\":\"shutoff\",\"date\":\"2026-11-17\",\"days\":5},\"shutoffSetBy\":\"biller\"}",
+      "atMs": 4052
+    },
+    {
+      "type": "tool_call",
+      "name": "draft_allocations",
+      "input": {},
+      "ok": true,
+      "result": "{\"options\":[{\"id\":\"A\",\"objective\":\"urgent_first\",\"bills\":[{\"billId\":\"cc71f140-0b4d-4e76-b008-88529fdaad85\",\"invoiceNumber\":\"INV-1187\",\"matchCents\":4120,\"urgency\":{\"kind\":\"shutoff\",\"date\":\"2026-11-16\",\"days\":4}},{\"billId\":\"02fe55dc-c3a5-4b64-a096-5a040aa8bcf6\",\"invoiceNumber\":\"INV-1203\",\"matchCents\":11840,\"urgency\":{\"kind\":\"shutoff\",\"date\":\"2026-11-17\",\"days\":5}},{\"billId\":\"a419b2bc-c2b8-42ec-98fc-32027ebce824\",\"invoiceNumber\":\"INV-1211\",\"matchCents\":4410,\"urgency\":{\"kind\":\"past_due\",\"date\":\"2026-11-02\",\"days\":10}},{\"billId\":\"03f90172-e8c6-4407-a0a4-dd2488870486\",\"invoiceNumber\":\"INV-1214\",\"mat",
+      "atMs": 4123
+    },
+    {
+      "type": "text",
+      "text": "Option A is the most-urgent-first plan. It covers both shutoff bills, INV-1187 (shutoff in 4 days) and INV-1203 (shutoff in 5 days). It also covers past-due INV-1211 and INV-1214. It totals $256.00 of your $300.00 and leaves $44.00 unspent.\n\nOption B closes the most bills: 5 bills for $278.90. It covers only INV-1187 on the shutoff side and leaves INV-1203 (shutoff in 5 days) unpaid.\n\nFor your \"most urgent first\" goal, A fits better. INV-1219 was skipped because its ledger timed out, so neither option includes it.",
+      "atMs": 7024
+    }
+  ],
+  "durationMs": 7024,
+  "result": {
+    "narrative": "Option A is the most-urgent-first plan. It covers both shutoff bills, INV-1187 (shutoff in 4 days) and INV-1203 (shutoff in 5 days). It also covers past-due INV-1211 and INV-1214. It totals $256.00 of your $300.00 and leaves $44.00 unspent.\n\nOption B closes the most bills: 5 bills for $278.90. It covers only INV-1187 on the shutoff side and leaves INV-1203 (shutoff in 5 days) unpaid.\n\nFor your \"most urgent first\" goal, A fits better. INV-1219 was skipped because its ledger timed out, so neither option includes it.",
+    "options": [
+      {
+        "id": "A",
+        "count": 4,
+        "totalCents": 25600
+      },
+      {
+        "id": "B",
+        "count": 5,
+        "totalCents": 27890
+      }
+    ],
+    "skipped": [
+      {
+        "invoiceNumber": "INV-1219",
+        "reason": "ledger timeout"
+      }
+    ]
+  }
+}

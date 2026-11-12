@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { config } from '../config.js'
 import { accountJson, accountText, accountToolLoop } from './accountClaude.js'
+import { traceStep } from './trace.js'
 
 let client = null
 const getClient = () => {
@@ -12,6 +13,7 @@ export const textOf = (content) => content.filter((b) => b.type === 'text').map(
 
 // One forced tool call that returns structured JSON (used for reading a document).
 export async function callForJson({ system, user, tool }) {
+  traceStep({ type: 'model_call', mode: 'structured', tools: [tool.name], model: config.anthropicModel })
   if (config.llmBackend === 'account') return accountJson({ system, user, tool })
   const response = await getClient().messages.create({
     model: config.anthropicModel,
@@ -27,6 +29,7 @@ export async function callForJson({ system, user, tool }) {
 }
 
 export async function callForText({ system, user }) {
+  traceStep({ type: 'model_call', mode: 'text', tools: [], model: config.anthropicModel })
   if (config.llmBackend === 'account') return accountText({ system, user })
   const response = await getClient().messages.create({ model: config.anthropicModel, max_tokens: 1200, system, messages: [{ role: 'user', content: user }] })
   return textOf(response.content)
@@ -34,6 +37,7 @@ export async function callForText({ system, user }) {
 
 // A bounded tool loop. The tools are server functions; none of them moves money.
 export async function runToolLoop({ system, user, tools, runTool, maxSteps = 6 }) {
+  traceStep({ type: 'model_call', mode: 'tool_loop', tools: tools.map((t) => t.name), model: config.anthropicModel })
   if (config.llmBackend === 'account') return accountToolLoop({ system, user, tools, runTool, maxSteps })
   const messages = [{ role: 'user', content: user }]
   const events = []

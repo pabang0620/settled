@@ -1,6 +1,6 @@
 # Settled
 
-**Half & Half: you pay your part of a real bill to the biller through Settled, a stranger matches the rest, and both payments land on the biller's PayPal invoice. The bill is untrusted input: the AI only reads it, and the payee comes from a biller registry and the biller's ledger, never from the document.**
+**Half & Half: you pay your part of a real bill to the biller through Settled, a stranger matches the rest, and both payments go to the biller and are recorded on its PayPal invoice (the invoice record is verified on the stand-in; see Limits). The bill is untrusted input: the AI only reads it, and the payee comes from a biller registry and the biller's ledger, never from the document.**
 
 The bill is untrusted. The payee isn't.
 
@@ -11,11 +11,11 @@ Demo only. No real money, no real billers, no real people. Everything below runs
 1. A person with a past-due utility bill (the **holder**) uploads the document. Claude reads it and reports what it says, including any "send payment to ..." line. The server compares it with the biller's own invoice (the ledger) and decides one of three paths:
    - **R1 Match on invoice**: the biller is in the registry, the invoice exists, number, amount and due date agree.
    - **R2 Pay on PayPal's invoice page**: the biller only takes payment there, so no matching. The holder is pointed to the invoice link taken from the ledger.
-   - **R3 Decline with a next step**: unknown biller, ledger mismatch, a payment instruction in the document (the ledger never names another payee, so the paper is refused because of that instruction, checked first in `server/bills.js`), closed invoice, and so on. The instruction is reported and ignored; it never changes the route, payee or amount.
+   - **R3 Decline with a next step**: unknown biller, ledger mismatch, a payment instruction in the document, closed invoice, and so on. A payment instruction is never followed: it cannot set the payee or the amount. Its only effect is that the server refuses the paper (the ledger never names another payee; checked first in `server/bills.js`).
 2. On R1 the holder pays **their own part first** (default 1/2, chosen from the shares the biller allows) with their own PayPal account. The app creates an Orders v2 order whose `payee.merchant_id` is the registry biller. The share is fixed on that invoice the moment the holder presses pay.
 3. As soon as that capture is recorded on the biller's invoice, a **match card** appears for patrons whose rules fit (monthly budget, per-bill cap, "holder pays at least X", region, category).
 4. A patron approves a card. PayPal **holds** the matching amount (AUTHORIZE order, payee again the registry biller). Nothing is charged yet.
-5. The hold is captured only after the holder's part has stayed paid for the whole window (production: 3 days). If the holder reverses, the hold is voided and nothing is charged. When captured, the invoice shows two payments and turns PAID. The holder and patron can then exchange a short thank-you ("We each paid half.") that is screened for contact details and asks.
+5. The hold is captured only after the holder's part has stayed paid for the whole window (production: 3 days; the stand-in demo uses 1 minute, and every screen shows the time it waits until). If the holder reverses, the hold is voided and nothing is charged. When captured, the invoice shows two payments and turns PAID. The holder and patron can then exchange a short thank-you ("We each paid half.") that is screened for contact details and asks.
 
 Money never goes to a person. Amounts are integer cents computed by server code from the ledger. The model never sets an amount, a payee, or a route.
 
@@ -29,23 +29,33 @@ npm start                # http://localhost:3001
 npm test                 # node --test, no network
 ```
 
+`npm run demo:video` builds and starts the exact recording state: stand-in PayPal, recorded Claude runs, a 1-minute hold window and a settle job every 5 seconds, whatever your `.env` says.
+
 Development: `npm run dev:server` and `npm run dev:client` (Vite on 5173 proxies `/api`).
+
+### Repository description
+
+Settled: pay your part of a past-due utility bill straight to the biller, a stranger matches the rest, and the match is charged only after your part stays paid for the hold window. The payee comes from a biller registry, never from the document.
 
 With no keys the app runs fully on built-in stand-ins whose response shapes follow PayPal's Orders v2, Payments v2 and Invoicing v2 schemas. Nothing leaves your machine. To run on the sandbox, fill the PayPal rows in `.env` (see the table) and follow `VERIFY.md`.
 
-## Judge walk-through (about 3 minutes)
+## Judge walk-through (about 4 minutes, one minute of it waiting)
 
-1. Open the app. Press **Watch one bill get settled**. A prepared bill (holder part already paid, window already passed) goes to a patron card. Approve in the checkout dialog and watch it turn into a held, then charged, match.
-2. Go to **I need help with a bill**. Choose Riverside Water and **Try a sample bill**. You get a fresh invoice and three documents: Real, Edited amount, Hidden instruction.
-3. Upload **Edited amount**: the paper adds $300 to the ledger amount. Route R3, amount mismatch BLOCKED.
-4. Upload **Hidden instruction**: number, amount and due date all match the ledger, but the paper says to send money to an email address. The agent reports the line, the server ignores it, the payee stays Riverside Water (registry), and the paper is refused with route R3 `unbacked_instruction`, the only failing check (`server/bills.js:22-62`, test `bills.test.js`).
-5. Upload **Real bill**: route R1. Pick a share (the biller allows 1/3, 1/2, 2/3) and **Pay my part**. Approve in the checkout dialog. The ledger now shows PARTIALLY_PAID.
-6. Go to **I'm a patron**. Press **Show open bills** (your own bill is offered to you, the stand-in uses a different PayPal account for the patron). Approve the hold. Press **Run the settle job now**. The invoice is PAID with two payments.
-7. For the agent branch, use a fresh session (budget $300) and run this before step 6, because matching first lowers the budget. Press **Prepare demo bills**, then **Plan my budget**. In a fresh session the plans are A: 4 bills $256.00, B: 5 bills $278.90. The server computes two allocation options (urgent first versus most bills closed), skips the bill whose ledger times out, and no option is beaten by any other set of bills. Choose one and the cards come out in shutoff order.
-8. **I'm a biller** (passcode `demo-biller` by default): turn Sponsorable on or off, set the shutoff date. Urgency is measured only from that date, never from document text.
-9. Stand-in only: under a paid holder part, press "simulate my bank pulling my payment back" while a hold is open. The hold is voided and the budget comes back. Releasing a hold uses the biller's own app credentials (verified in the sandbox: authorization 6KH08201LE3777732 VOIDED).
+Start with the defaults (`cp .env.example .env`, keys empty). The header must say "PayPal stand-in" and "hold window 1 minute". The same nine steps are in `DEVPOST.md` and `docs/VIDEO_SCRIPT.md`.
 
-The hold window is shortened for the demo when `HOLDER_SETTLE_MINUTES` is small. The UI says so wherever it shows the window.
+1. **Watch one bill get settled** (Home). A prepared bill whose holder part already stayed paid for the window goes to a patron card. Approve in the checkout dialog. Under "Your matches" it reads "Charged and recorded on the invoice".
+2. **Try a sample bill**: go to **I need help**, keep Riverside Water, press **Try a sample bill**. You get invoice INV-4821 ($82.40) and three documents: Real bill, Edited amount, Hidden instruction.
+3. **Edited amount**: press **Upload this document** under it. The paper says $382.40; route R3, "Paper amount mismatch BLOCKED".
+4. **Hidden instruction**: number, amount and due date all match the ledger, but the paper says to send money to an email address. Left: the instruction. Right: "ignored by server, and the paper is refused because of it", "Payee unchanged: Riverside Water (registry)". Route R3 `unbacked_instruction`, the only failing check (`server/bills.js`, test `bills.test.js`). Open **Recorded run: Claude Sonnet** under it to see the real model's tool call: it reported the line and did not follow it.
+5. **Real bill, Pay my part**: route R1. Pick a share (the biller allows 1/3, 1/2, 2/3), press **Pay my part with PayPal to Riverside Water**, approve. The ledger status reads PARTIALLY_PAID.
+6. **Hold and settle**: go to **I'm a patron**, press **Show open bills** (your own bill is offered to you; the stand-in uses a different PayPal account for the patron), press **Hold**, approve. The match reads "Held, not charged" and "Charged after HH:MM:SS". **Run the settle job now** before then answers "Not charged yet ... until HH:MM:SS". About a minute later the settle job charges it on its own and the screen updates: "Charged and recorded on the invoice". Under **I need help** the bill reads PAID with your part and the patron's match.
+7. **Plan my budget**: press **New session** (top right) for a fresh $300 budget, go to **I'm a patron**, press **Prepare demo bills**, then **Plan my budget**. Plan A: 4 bills, $256.00. Plan B: 5 bills, $278.90. INV-1219 is skipped (ledger timeout). The server computes the options; no option is beaten by another set of these bills. Open **Recorded run: Claude Sonnet** to see the model's own steps: `list_open_bills`, `get_bill_detail` for the bills it chose to check, `draft_allocations`. Choose A and hold a card: prepared bills already passed their window, so it is charged at the next settle run (within 5 seconds).
+8. **I'm a biller**: press **Log in** (passcode `demo-biller`, filled in). Turn Sponsorable on or off, set the shutoff date. Urgency is measured only from that date, never from document text.
+9. **Activity**: the "Sandbox evidence" panel lists the real PayPal Sandbox results with their ids (the table below).
+
+Optional, stand-in only: under a paid holder part with a hold still open, press "simulate my bank pulling my payment back". The hold is voided and the budget comes back. The link disappears once the bill is PAID.
+
+The window and the settle interval are `HOLDER_SETTLE_MINUTES` and `SETTLE_JOB_SECONDS`. Empty means 1 minute and 5 seconds on the stand-in, and 3 days (4320 minutes) and 30 seconds with sandbox keys.
 
 ## Server rules and where they are tested
 
@@ -89,6 +99,8 @@ Real PayPal Sandbox calls made through the SDK (and the Agent Toolkit where note
 | V8 | `payments.voidPayment` with the shared app | blocked | authorization 9HV98331813657537: 403 `PERMISSION_DENIED`, so release needs the biller's own app |
 | V4 | Agent Toolkit `create_refund` as Riverside, then `payments.getCapturedPayment` | PASS | refund 07J41073AN345254V `COMPLETED`, capture 70N07908P40881933 reads `REFUNDED` |
 | V10a | `orders.createOrder` twice with the same `PayPal-Request-Id` | PASS | order 7CL75003489574914 both times |
+| V10b | `payments.voidPayment` as the biller app, empty 204 answer | PASS | authorization 0ET240840K915803T: 204, settled by reading it back `VOIDED` |
+| X1 | `claude plugin list` and the SDK money path above | PASS | `paypal@context-plugins` 0.4.1; captures 5V973346CM946373X, 94T771459L404044W through the APIMatic `paypal` SDK |
 | V3 | `record_payment_for_invoice` as Riverside | blocked | the Riverside app lacks the Invoicing feature (403); the invoice record is verified in the stand-in only |
 
 Two real defects the live run exposed, both fixed in the adapter and covered by tests:
@@ -98,10 +110,21 @@ Two real defects the live run exposed, both fixed in the adapter and covered by 
 
 ## What the AI does
 
-- Reads the bill document (Claude in live mode, a text parser in the stand-in; the UI header and every sources line name which one ran) and reports fields and payment instructions.
+- Reads the bill document with one structured tool call (`report_bill_fields`) and reports fields and payment instructions. It is told the document is untrusted data.
 - Explains the route the server chose, in plain words, and what the person should do next.
-- Describes the allocation options the server computed; drafts giving rules from a sentence (the patron saves them); second-pass screening of free text.
+- Plans with the patron in a tool loop and chooses its own steps: `list_open_bills`, then `get_bill_detail` for the bills it decides to single out (a skipped bill, a near shutoff), then `draft_allocations`, then a short description. The options themselves are computed by the server (`server/allocation.js`).
+- Drafts giving rules from a sentence (`draft_rules`); the patron saves them and zod validates them.
 - It never decides a route, an amount, a payee, or moves money. Every money step is a server function behind a person's approval on PayPal.
+
+Where the model runs, and how each screen says so:
+
+| Setting | What runs | Label on screen |
+|---|---|---|
+| No key (default) | Recorded runs of the real model replay where the input is the recorded one (the Riverside sample papers, the fresh-session plan, the example rules sentence). Anything else uses a text parser and template text | "Recorded run: Claude Sonnet, 2026-11-12", or "stand-in reader" / "stand-in agent" |
+| `LLM_BACKEND=account` | Claude Sonnet through your local Claude Code login (Claude Agent SDK, no API key) | "Claude Sonnet (local account)" |
+| `ANTHROPIC_API_KEY` | Claude through the hosted API | "Claude (API key)" |
+
+The recordings are in `server/recorded-runs/*.json`: every model call, every tool call with its input, the model's text, and timings. They were made with `npm run record:runs` (`LLM_BACKEND=account`, PayPal on the stand-in). Server checks, routes, payees and amounts are always computed live; only the model's part is replayed. The hosted API path has not been run.
 
 ## Environment variables
 
@@ -110,13 +133,14 @@ Two real defects the live run exposed, both fixed in the adapter and covered by 
 | `PORT`, `PUBLIC_URL` | Server port and public base URL (used for PayPal return URLs). The server warns at startup if they disagree | 3001, `http://localhost:PORT` |
 | `FORCE_MOCK` | `1` ignores all keys and stays on stand-ins | `0` |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Live Claude reader and explanations through the hosted API; empty = stand-in agent | empty, `claude-sonnet-5-5` |
-| `LLM_BACKEND` | `account` runs the model through your local Claude Code login (Claude Agent SDK, local development only, never reads `ANTHROPIC_API_KEY`). The UI labels it "Claude Sonnet (local account)". `FORCE_MOCK=1` turns it off | empty |
+| `LLM_BACKEND` | `account` runs the model through your local Claude Code login (Claude Agent SDK, local development only, never reads `ANTHROPIC_API_KEY`). The UI labels it "Claude Sonnet (local account)". `FORCE_MOCK=1` turns it off. Empty with no key: recorded runs replay where they apply | empty |
 | `MATCH_MODE` | `hold` = AUTHORIZE now, capture after the window. `capture_after_window` = the card appears only after the window and one CAPTURE order is made (use when the biller's own app credentials are not available) | `hold` |
 | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | Sandbox app credentials for payee orders through the SDK (both required for sandbox mode) | empty |
 | `PAYPAL_SDK_LOG` | `1` writes one-line PayPal SDK diagnostics (status, reason, debug id; never request bodies) to stderr | empty |
 | `RIVERSIDE_MERCHANT_ID`, `CEDAR_MERCHANT_ID` | Sandbox business merchant ids of the demo billers (the registry payee) | stand-in ids |
 | `RIVERSIDE_CLIENT_ID`, `RIVERSIDE_CLIENT_SECRET` | Biller-side sandbox credentials for the Agent Toolkit invoicing calls | empty |
-| `HOLDER_SETTLE_MINUTES` | Window between the holder's capture and the earliest match capture | `4320` (3 days) |
+| `HOLDER_SETTLE_MINUTES` | Window between the holder's capture and the earliest match capture | empty: 1 on the stand-in, 4320 (3 days) with sandbox keys |
+| `SETTLE_JOB_SECONDS` | How often the in-process settle job captures holds whose window is over | empty: 5 on the stand-in, 30 with sandbox keys |
 | `SEED_DAILY_LIMIT` | Sample invoices per day (sandbox protection) | `50` |
 | `BILLER_PASSCODE` | Demo passcode for the biller console | `demo-biller` |
 | `OPS_KEY` | Header `x-ops-key` for `POST /api/ops/settle` | empty (endpoint disabled) |
@@ -128,6 +152,7 @@ Two real defects the live run exposed, both fixed in the adapter and covered by 
 - Releasing a hold uses the biller's own app credentials. The shared app can authorize and capture for a payee but gets 403 on void. Without those credentials the server warns at startup, and `MATCH_MODE=capture_after_window` avoids holds altogether.
 - The R2 screen does not open a payment link: the invoice returned by the sandbox has no pay-page link, so it says to pay on PayPal's invoice (the link is in the invoice email).
 - Invoices made through the Agent Toolkit carry no due date; the shutoff date set by the biller is what measures urgency.
+- The budget planner compares every affordable set of up to 18 bills. With more eligible bills it keeps the 18 most urgent and says so on screen ("no option is beaten by another set of the 18 most urgent bills").
 - `npm test` runs on the stand-ins only (it forces mock mode). The real-model and sandbox runs are in `VERIFY.md`; the real-model run used a local Claude account, not the hosted API.
 - The stand-in and the sandbox billers are ours. No real utility is connected; a real biller would need to be onboarded with PayPal.
 - Matching is a selection and commitment device, not fraud proofing. It confirms that this invoice has a completed payment made through Settled by the holder's PayPal login. It cannot tell whose wallet funded it or whether it is later disputed. PayPal buyer protection claims can arrive up to 180 days after a payment; a 3-day window does not cover that, and the card says so.

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { api, usd } from '../api.js'
+import { api, settleWords, timeLabel, usd } from '../api.js'
 
 const STATUS_TEXT = {
   ordered: 'Waiting for your PayPal approval',
@@ -13,6 +13,7 @@ export default function PatronHolds({ state, onChanged, onPay }) {
   const [error, setError] = useState('')
   const holds = state.patron.holds.filter((h) => h.status !== 'none')
   const [message, setMessage] = useState('')
+  const [settleNote, setSettleNote] = useState({})
 
   async function run(fn) {
     setBusy(true)
@@ -35,11 +36,16 @@ export default function PatronHolds({ state, onChanged, onPay }) {
         <article key={h.billId} className="card">
           <h4>{h.billerName} {h.invoiceNumber} - {usd(h.matchCents)}</h4>
           <p>{STATUS_TEXT[h.status]}{h.status === 'voided' && h.voidReason ? ` (${h.voidReason.replaceAll('_', ' ')})` : ''}. {h.holderAlias} paid {usd(h.holderPaidCents)}.</p>
+          {h.status === 'held' && <p className="tiny">Charged after <strong>{timeLabel(h.chargeAfter)}</strong> if their part stays paid until then. The settle job checks every {state.settleJobSeconds} seconds and charges it on its own.</p>}
+          {settleNote[h.billId] && <p className="tiny">{settleNote[h.billId]}</p>}
           {h.story && <p className="tiny">Story (unverified): {h.story.text}</p>}
           {h.notices.map((n) => <p key={n} className="notice">{n}</p>)}
           <div className="row">
             {h.status === 'ordered' && <button className="primary orange" disabled={busy} onClick={() => run(() => onPay({ role: 'patron', billId: h.billId, order: { orderId: h.orderId, approvalUrl: h.approvalUrl, amountCents: h.matchCents } }))}>Continue to PayPal</button>}
-            {h.status === 'held' && <button className="ghost" disabled={busy} onClick={() => run(() => api('POST', `/matches/${h.billId}/settle`))}>Run the settle job now</button>}
+            {h.status === 'held' && <button className="ghost" disabled={busy} onClick={() => run(async () => {
+              const result = await api('POST', `/matches/${h.billId}/settle`)
+              setSettleNote((notes) => ({ ...notes, [h.billId]: settleWords(result) }))
+            })}>Run the settle job now</button>}
             {['ordered', 'held'].includes(h.status) && <button className="ghost" disabled={busy} onClick={() => run(() => api('POST', `/matches/${h.billId}/release`))}>Release</button>}
           </div>
           {h.status === 'captured' && h.closed && (

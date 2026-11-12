@@ -1,0 +1,53 @@
+{
+  "scene": "rules",
+  "model": "claude-sonnet-5-5",
+  "backend": "Claude Agent SDK, local Claude Code login (no API key)",
+  "recordedAt": "2026-11-12",
+  "input": {
+    "text": "I can give about $200 a month, up to $120 per bill, and the holder should pay at least 1/2. I live in OH."
+  },
+  "steps": [
+    {
+      "type": "model_call",
+      "mode": "structured",
+      "tools": [
+        "draft_rules"
+      ],
+      "model": "claude-sonnet-5-5",
+      "atMs": 0
+    },
+    {
+      "type": "tool_call",
+      "name": "draft_rules",
+      "input": {
+        "monthlyBudgetDollars": 200,
+        "minHolderShare": "1/2",
+        "perBillCapDollars": 120,
+        "region": "OH"
+      },
+      "atMs": 2568
+    },
+    {
+      "type": "text",
+      "text": "I drafted your giving rules with the four values from your sentence:\n\n- **Monthly budget:** $200\n- **Per-bill cap:** $120\n- **Minimum holder share:** 1/2\n- **Region:** OH\n\nI didn't add anything you didn't mention.",
+      "atMs": 4686
+    }
+  ],
+  "durationMs": 4688,
+  "result": {
+    "toolInput": {
+      "monthlyBudgetDollars": 200,
+      "minHolderShare": "1/2",
+      "perBillCapDollars": 120,
+      "region": "OH"
+    },
+    "rules": {
+      "monthlyBudgetCents": 20000,
+      "minHolderShare": "1/2",
+      "perBillCapCents": 12000,
+      "category": "utilities",
+      "region": "OH",
+      "type": "individual"
+    }
+  }
+}

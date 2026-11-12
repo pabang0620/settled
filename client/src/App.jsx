@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api } from './api.js'
+import { api, forgetSession, windowWords } from './api.js'
 import Home from './components/Home.jsx'
 import Holder from './components/Holder.jsx'
 import Patron from './components/Patron.jsx'
@@ -35,6 +35,14 @@ export default function App() {
     }
     await refresh()
   }, [refresh])
+
+  // While a hold is waiting for its window, refresh so the settle job's result shows up without a click.
+  const waiting = !!state && (state.bills.some((b) => b.match.status === 'held') || state.patron.holds.some((h) => h.status === 'held'))
+  useEffect(() => {
+    if (!waiting) return undefined
+    const timer = setInterval(refresh, 4000)
+    return () => clearInterval(timer)
+  }, [waiting, refresh])
 
   // Back from PayPal's real approval page: finish the payment named in the return URL.
   useEffect(() => {
@@ -81,7 +89,8 @@ export default function App() {
         <nav aria-label="Sections">
           {TABS.map(([id, label]) => <button key={id} className={tab === id ? 'tab on' : 'tab'} onClick={() => setTab(id)}>{label}</button>)}
         </nav>
-        <span className="mode">{modeText} - {state.modes.llmLabel}{state.demoShortenedWindow ? ' - hold window shortened for demo' : ''}</span>
+        <button className="ghost" onClick={() => { forgetSession(); window.location.reload() }}>New session</button>
+        <span className="mode">{modeText} - {state.modes.llm === 'live' ? state.modes.llmLabel : 'Claude: stand-in, replays recorded Sonnet runs'}{state.demoShortenedWindow ? ` - hold window ${windowWords(state.holdWindowMinutes)} (demo; production 3 days)` : ''}</span>
       </header>
       {error && <p className="error banner">{error}</p>}
       {tab === 'home' && <Home state={state} go={setTab} onChanged={refresh} onPay={onPay} />}

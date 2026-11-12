@@ -69,7 +69,7 @@ export default function Holder({ state, onChanged, onPay }) {
       {analysis && <RouteView analysis={analysis} />}
 
       {shownBills.map((bill) => (
-        <HolderBill key={bill.id} bill={bill} mockMode={state.modes.paypal === 'mock'} windowShortened={state.demoShortenedWindow} matchMode={state.modes.matchMode} onChanged={onChanged} onPay={onPay} />
+        <HolderBill key={bill.id} bill={bill} mockMode={state.modes.paypal === 'mock'} windowShortened={state.demoShortenedWindow} settleJobSeconds={state.settleJobSeconds} matchMode={state.modes.matchMode} onChanged={onChanged} onPay={onPay} />
       ))}
     </div>
   )

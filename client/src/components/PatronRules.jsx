@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import { api, usd } from '../api.js'
 
+// The same sentence the recorded model run used, so the stand-in can replay that run.
+const RULES_EXAMPLE = 'I can give about $200 a month, up to $120 per bill, and the holder should pay at least 1/2. I live in OH.'
+
 export default function PatronRules({ state, onChanged }) {
   const rules = state.patron.rules
   const [form, setForm] = useState({ budget: rules.monthlyBudgetCents / 100, cap: rules.perBillCapCents / 100, floor: rules.minHolderShare, region: rules.region })
-  const [sentence, setSentence] = useState('')
+  const [sentence, setSentence] = useState(RULES_EXAMPLE)
+  const [draftedBy, setDraftedBy] = useState('')
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
 
@@ -26,6 +30,7 @@ export default function PatronRules({ state, onChanged }) {
     try {
       const d = await api('POST', '/patron/rules/draft', { text: sentence })
       setForm({ budget: d.monthlyBudgetCents / 100, cap: d.perBillCapCents / 100, floor: d.minHolderShare, region: d.region })
+      setDraftedBy(d.source)
       setSaved(false)
     } catch (err) {
       setError(err.message)
@@ -48,6 +53,7 @@ export default function PatronRules({ state, onChanged }) {
         <input className="wide" placeholder='Or describe them: "$200 a month, up to $90 per bill, holder pays at least 1/2"' value={sentence} onChange={(e) => setSentence(e.target.value)} />
         <button className="ghost" onClick={draft} disabled={sentence.length < 3}>Draft rules</button>
       </div>
+      {draftedBy && <p className="tiny muted">Draft filled in above by [{draftedBy}]. Check it, then press Save rules.</p>}
       <p className="tiny muted">Spent {usd(state.patron.spentCents)} this month, {usd(state.patron.remainingCents)} left. {saved || state.patron.saved ? 'Rules saved.' : 'Showing defaults; save to keep them.'}</p>
       {error && <p className="error">{error}</p>}
     </section>

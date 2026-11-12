@@ -5,7 +5,8 @@ const RULES = [
   ['phone', /(?:\+?\d[\s().-]?){7,}/],
   ['payment_handle', /\$[a-z][\w]{2,}|\b(cash ?app|venmo|zelle|paypal\.me|bitcoin|btc)\b/i],
   ['account_number', /\b\d{6,}\b/],
-  ['extra_request', /\b(send me|dm me|text me|call me|can you also|please also send|wire)\b/i],
+  // Asks for more money or a side channel ("send more", "could you also cover"). A story may still say it needs help with this bill.
+  ['extra_request', /\b(send (me|us|more|money|cash|extra|again)|dm me|text me|call me|email me|contact me|can you also|could you also|please also|also (cover|pay)|lend me|wire)\b/i],
   ['real_name', /\bmy (full |real )?name is\b/i],
 ]
 

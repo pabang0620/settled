@@ -65,3 +65,6 @@ input.wide { flex: 1; min-width: 440px; } input.short { width: 56px; } textarea 
 .muted { color: var(--muted); } .tiny { font-size: .8rem; } .warn { color: #8a5a00; } .error { color: var(--red); } .banner { background: #fdecea; padding: 8px 12px; border-radius: 8px; }
 details summary { cursor: pointer; color: var(--blue); } code { background: #eef1f7; padding: 1px 5px; border-radius: 4px; }
 .messages p.mine { text-align: right; }
+.recorded-run { margin-top: 8px; }
+.recorded-run pre { margin: 2px 0 6px; white-space: pre-wrap; word-break: break-word; }
+.steps-log { padding-left: 18px; }

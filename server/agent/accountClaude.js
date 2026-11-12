@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { config } from '../config.js'
+import { traceStep } from './trace.js'
 
 // Local development only: the same prompts and tools as claude.js, run through the Claude Agent SDK so the
 // developer's Claude Code login is used. The Anthropic API key is removed from the child environment.
@@ -50,17 +51,21 @@ export async function accountJson({ system, user, tool }) {
   let captured = null
   const reporter = agentSdk.tool(tool.name, tool.description, shapeOf(tool.input_schema), async (input) => {
     captured = input
+    traceStep({ type: 'tool_call', name: tool.name, input })
     return { content: [{ type: 'text', text: 'Recorded.' }] }
   })
   const server = agentSdk.createSdkMcpServer({ name: SERVER_NAME, version: '1.0.0', tools: [reporter] })
   const options = { ...baseOptions(`${system}\nCall the ${tool.name} tool exactly once, then stop.`, [tool], 3), mcpServers: { [SERVER_NAME]: server } }
-  await drain(agentSdk, user, options)
+  const text = await drain(agentSdk, user, options)
+  if (text) traceStep({ type: 'text', text })
   if (!captured) throw new Error('The model returned no structured result.')
   return captured
 }
 
 export async function accountText({ system, user }) {
-  return drain(await loadSdk(), user, baseOptions(system, [], 1))
+  const text = await drain(await loadSdk(), user, baseOptions(system, [], 1))
+  traceStep({ type: 'text', text })
+  return text
 }
 
 // Bounded tool loop. The tools are server functions; none of them moves money.
@@ -70,10 +75,12 @@ export async function accountToolLoop({ system, user, tools, runTool, maxSteps =
   const defs = tools.map((def) => agentSdk.tool(def.name, def.description, shapeOf(def.input_schema), async (input) => {
     const outcome = await runTool(def.name, input)
     events.push({ tool: def.name, ok: outcome.ok, source: 'model' })
+    traceStep({ type: 'tool_call', name: def.name, input, ok: outcome.ok, result: JSON.stringify(outcome.result).slice(0, 600) })
     return { content: [{ type: 'text', text: JSON.stringify(outcome.result).slice(0, 12000) }], isError: !outcome.ok }
   }))
   const server = agentSdk.createSdkMcpServer({ name: SERVER_NAME, version: '1.0.0', tools: defs })
   const options = { ...baseOptions(system, tools, maxSteps + 1), mcpServers: { [SERVER_NAME]: server } }
   const text = await drain(agentSdk, user, options)
+  traceStep({ type: 'text', text })
   return { text: text || 'I stopped after several steps.', events }
 }

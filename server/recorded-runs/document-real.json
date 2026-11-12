@@ -1,0 +1,65 @@
+{
+  "scene": "document-real",
+  "model": "claude-sonnet-5-5",
+  "backend": "Claude Agent SDK, local Claude Code login (no API key)",
+  "recordedAt": "2026-11-12",
+  "input": {
+    "documentText": "Riverside Water\nSTATEMENT OF ACCOUNT\nInvoice: INV-4821\nAccount: RI-4478\nAmount due: $82.40\nDue: 2026-11-05"
+  },
+  "steps": [
+    {
+      "type": "model_call",
+      "mode": "structured",
+      "tools": [
+        "report_bill_fields"
+      ],
+      "model": "claude-sonnet-5-5",
+      "atMs": 0
+    },
+    {
+      "type": "tool_call",
+      "name": "report_bill_fields",
+      "input": {
+        "billerName": "Riverside Water",
+        "invoiceNumber": "INV-4821",
+        "accountRef": "RI-4478",
+        "amountDue": "$82.40",
+        "dueDate": "2026-11-05",
+        "instructions": []
+      },
+      "atMs": 6220
+    },
+    {
+      "type": "text",
+      "text": "I reported the bill fields: Riverside Water, invoice INV-4821, account RI-4478, $82.40 due 2026-11-05. The document contained no payment instructions, so I reported none.\n\nThat due date is before today (2026-11-12), so the bill appears to be overdue.",
+      "atMs": 8193
+    },
+    {
+      "type": "model_call",
+      "mode": "text",
+      "tools": [],
+      "model": "claude-sonnet-5-5",
+      "atMs": 8196
+    },
+    {
+      "type": "text",
+      "text": "This bill can be paid here: Riverside Water is a registered biller, and invoice INV-4821 for $82.40 due 2026-11-05 matches our records exactly. The document contained no payment instructions, so there was nothing to ignore. Next, go ahead and pay your part of the bill through the payment step, and note that no payment has been attempted yet.",
+      "atMs": 11733
+    }
+  ],
+  "durationMs": 11734,
+  "result": {
+    "readerInput": {
+      "billerName": "Riverside Water",
+      "invoiceNumber": "INV-4821",
+      "accountRef": "RI-4478",
+      "amountDue": "$82.40",
+      "dueDate": "2026-11-05",
+      "instructions": []
+    },
+    "explanation": "This bill can be paid here: Riverside Water is a registered biller, and invoice INV-4821 for $82.40 due 2026-11-05 matches our records exactly. The document contained no payment instructions, so there was nothing to ignore. Next, go ahead and pay your part of the bill through the payment step, and note that no payment has been attempted yet.",
+    "route": "R1",
+    "code": "ok",
+    "failedChecks": []
+  }
+}

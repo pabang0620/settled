@@ -15,6 +15,11 @@ import { mockOrders } from './integrations/mockPaypal.js'
 const DAY = 86400000
 const isoDay = (offsetDays) => new Date(now() + offsetDays * DAY).toISOString().slice(0, 10)
 const AMOUNTS = [8240, 9610, 12000, 6430, 7280, 10150]
+// On the stand-in, the Riverside sample uses the same invoice values as the recorded real-model run,
+// so a replayed recording describes the paper the judge sees (server/recorded-runs/). The account number stays
+// per session, because one biller account may have only one open matched bill a month (S4).
+export const RECORDED_SAMPLE = Object.freeze({ invoiceNumber: 'INV-4821', totalCents: 8240, dueDate: '2026-11-05' })
+const pinnedSample = (billerKey, options) => (modes.paypal === 'mock' && billerKey === 'riverside' && options.totalCents == null && options.invoiceNumber == null ? RECORDED_SAMPLE : {})
 
 // Documents are kept per session so a judge sees only the bills they created.
 const documents = new Map()
@@ -47,10 +52,11 @@ export async function seedSession(session, billerKey, options = {}) {
     const docs = [...documents.values()].filter((d) => d.billId === existing.id).map(documentView)
     return { bill: existing, documents: docs, reused: true }
   }
-  const totalCents = options.totalCents ?? AMOUNTS[randomInt(0, AMOUNTS.length)]
-  const invoiceNumber = options.invoiceNumber ?? `INV-${randomInt(1100, 9999)}`
-  const accountRef = options.accountRef ?? `${biller.id.slice(0, 2).toUpperCase()}-${randomInt(1000, 9999)}`
-  const dueDate = options.dueDate ?? isoDay(-7)
+  const pinned = pinnedSample(billerKey, options)
+  const totalCents = options.totalCents ?? pinned.totalCents ?? AMOUNTS[randomInt(0, AMOUNTS.length)]
+  const invoiceNumber = options.invoiceNumber ?? pinned.invoiceNumber ?? `INV-${randomInt(1100, 9999)}`
+  const accountRef = options.accountRef ?? pinned.accountRef ?? `${biller.id.slice(0, 2).toUpperCase()}-${randomInt(1000, 9999)}`
+  const dueDate = options.dueDate ?? pinned.dueDate ?? isoDay(-7)
   const created = await seedInvoice(biller, session, {
     invoiceNumber,
     totalCents,
@@ -90,7 +96,9 @@ const PLAN_BILLS = [
 ]
 
 let payerCounter = 0
-async function preparedBill({ invoiceNumber, total, shutoffInDays, flaky }, windowPassed, audience) {
+// Prepared bills start with the holder's window already over, so a hold on one can be charged at the next settle run
+// whatever HOLDER_SETTLE_MINUTES is.
+async function preparedBill({ invoiceNumber, total, shutoffInDays, flaky }, audience) {
   if (modes.paypal !== 'mock') throw new HttpError(409, 'Prepared bills exist only on the stand-in. In the sandbox, prepare them as described in VERIFY.md.', 'prepared_mock_only')
   const holder = createSession()
   payerCounter += 1
@@ -107,18 +115,18 @@ async function preparedBill({ invoiceNumber, total, shutoffInDays, flaky }, wind
   mockOrders.approve(started.orderId, { payer_id: `DEMOPAYER${String(payerCounter).padStart(3, '0')}`, email_address: `holder${payerCounter}@example.com`, name: { given_name: 'Demo', surname: `Holder${payerCounter}` } })
   await completeHolderPayment(holder, bill.id)
   const settleMs = config.holderSettleMinutes * 60000
-  bill.holder = { ...bill.holder, capturedAt: now() - (windowPassed ? settleMs + 60000 : 3600000) }
+  bill.holder = { ...bill.holder, capturedAt: now() - settleMs - 60000 }
   bill.ledgerFlaky = !!flaky
   return bill
 }
 
 export async function seedPlanBills(patron) {
   const bills = []
-  for (const spec of PLAN_BILLS) bills.push(await preparedBill(spec, false, patron))
+  for (const spec of PLAN_BILLS) bills.push(await preparedBill(spec, patron))
   return bills
 }
 
 // "Watch one bill get settled": one prepared bill whose window already passed.
 export async function takeFromPool(patron, counter = 1230 + payerCounter) {
-  return preparedBill({ invoiceNumber: `INV-${counter}`, total: 8240, shutoffInDays: 3 }, true, patron)
+  return preparedBill({ invoiceNumber: `INV-${counter}`, total: 8240, shutoffInDays: 3 }, patron)
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { api, dayLabel, usd } from '../api.js'
+import { api, dayLabel, settleWords, timeLabel, usd, windowWords } from '../api.js'
 
 const STEPS = ['Your part', 'A patron holds the match', 'Charged to the biller', 'Paid']
 const CAPTURE_STEPS = ['Your part', 'The window runs, then a patron matches', 'Charged to the biller', 'Paid']
@@ -11,12 +11,13 @@ function progress(bill) {
   return 0
 }
 
-export default function HolderBill({ bill, mockMode, windowShortened, matchMode, onChanged, onPay }) {
+export default function HolderBill({ bill, mockMode, windowShortened, settleJobSeconds, matchMode, onChanged, onPay }) {
   const [share, setShare] = useState(bill.share || bill.defaultShare)
   const [story, setStory] = useState(bill.story || '')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [settleNote, setSettleNote] = useState('')
   const step = progress(bill)
   const selected = bill.shareOptions.find((o) => o.share === share)
   const canPay = bill.statusClass === 'payable' && bill.holder.status !== 'captured' && bill.paymentModes.includes('payee_order')
@@ -90,8 +91,9 @@ export default function HolderBill({ bill, mockMode, windowShortened, matchMode,
       {bill.match.status === 'held' && (
         <div className="callout orange">
           <strong>{bill.match.patron} is holding your match ({usd(bill.match.amountCents)}).</strong>
-          <p>It is charged {bill.holdWindowMinutes >= 60 ? `in ${Math.round(bill.holdWindowMinutes / 1440)} days` : 'right after the next settle run'} if your part stays paid{windowShortened ? ' (demo: shortened)' : ''}.</p>
-          <button className="ghost" disabled={busy} onClick={() => run(() => api('POST', `/matches/${bill.id}/settle`))}>Run the settle job now</button>
+          <p>Charged after <strong>{timeLabel(bill.match.chargeAfter)}</strong> if your part stays paid until then (window {windowWords(bill.holdWindowMinutes)}{windowShortened ? ', shortened for the demo; production is 3 days' : ''}). The settle job checks every {settleJobSeconds} seconds and charges it on its own.</p>
+          <button className="ghost" disabled={busy} onClick={() => run(async () => setSettleNote(settleWords(await api('POST', `/matches/${bill.id}/settle`))))}>Run the settle job now</button>
+          {settleNote && <p className="tiny">{settleNote}</p>}
         </div>
       )}
       {bill.match.status === 'voided' && <p className="warn">The patron hold was released ({bill.match.voidReason?.replaceAll('_', ' ')}). Nothing was charged.</p>}
@@ -102,7 +104,7 @@ export default function HolderBill({ bill, mockMode, windowShortened, matchMode,
         </div>
       )}
 
-      {mockMode && bill.holder.status === 'captured' && !bill.holderReversed && (
+      {mockMode && bill.holder.status === 'captured' && !bill.holderReversed && !bill.closed && (
         <p className="tiny"><button className="link" disabled={busy} onClick={() => run(() => api('POST', `/mock/reverse-holder/${bill.id}`))}>Stand-in only: simulate my bank pulling my payment back</button></p>
       )}
 

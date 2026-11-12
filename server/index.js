@@ -18,7 +18,7 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 process.on('exit', (code) => log(`process exit, code ${code}`))
 
 // The settle job: capture holds whose window is over, void the reversed ones.
-const SETTLE_INTERVAL_MS = 30000
+const SETTLE_INTERVAL_MS = Math.max(1, config.settleJobSeconds) * 1000
 setInterval(() => {
   settleDue().catch((err) => log(`settle job failed: ${err?.message || err}`))
 }, SETTLE_INTERVAL_MS).unref()

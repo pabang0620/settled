@@ -7,7 +7,7 @@ import { listBillers, getBiller } from './registry.js'
 import { getDocument, documentView, seedPlanBills, seedSession, takeFromPool } from './seed.js'
 import { analyzeDocument } from './agent/bills.js'
 import { planAllocations, proposeBatch } from './agent/allocations.js'
-import { draftPatronRules } from './agent/rules.js'
+import { draftPatronRules, draftSource } from './agent/rules.js'
 import { cancelHolderOrder, completeHolderPayment, ownBill, startHolderPayment } from './holder.js'
 import { cardView, confirmHold, evaluate, flagDispute, openCandidates, recheckBill, releaseMatch, requestMatch, settleDue, settleMatch } from './matching.js'
 import { remainingCents, rulesOf, saveRules, spentCents } from './patron.js'
@@ -47,6 +47,7 @@ api.get('/state', async (req, res) => {
   ok(res, {
     modes: { paypal: modes.paypal, llm: modes.llm, llmLabel: llmLabel(), matchMode: config.matchMode },
     holdWindowMinutes: config.holderSettleMinutes,
+    settleJobSeconds: config.settleJobSeconds,
     demoShortenedWindow: DEMO_SHORTENED_WINDOW,
     billers: listBillers().map((b) => ({ id: b.id, name: b.name, entityType: b.entityType, paymentModes: b.paymentModes, holderShare: b.holderShare, allowedShares: b.allowedShares, region: b.region, category: b.category })),
     billerSession: session.billerId,
@@ -115,7 +116,10 @@ api.get('/patron/feed', async (req, res) => {
   ok(res, { cards: candidates.map((c) => cardView(c.bill, c.ledger, c.check)), skipped, remainingCents: remainingCents(patron) })
 })
 api.put('/patron/rules', (req, res) => ok(res, saveRules(sessionOf(req), req.body)))
-api.post('/patron/rules/draft', async (req, res) => ok(res, await draftPatronRules(parse(z.object({ text: z.string().min(3).max(400) }), req.body).text)))
+api.post('/patron/rules/draft', async (req, res) => {
+  const { text } = parse(z.object({ text: z.string().min(3).max(400) }), req.body)
+  ok(res, { ...(await draftPatronRules(text)), source: draftSource(text) })
+})
 api.post('/patron/plan', async (req, res) => ok(res, await planAllocations(sessionOf(req), parse(z.object({ text: z.string().max(400).default('') }), req.body).text)))
 api.post('/patron/plan/:option/choose', async (req, res) => ok(res, await proposeBatch(sessionOf(req), parse(z.enum(['A', 'B']), req.params.option))))
 

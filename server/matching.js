@@ -223,7 +223,7 @@ export async function settleMatch(billId) {
       return { state: 'voided', voidReason: 'ledger_changed' }
     }
     const waitMs = holdReleasesAt(bill) - now()
-    if (waitMs > 0) return { state: 'waiting', waitMs }
+    if (waitMs > 0) return { state: 'waiting', waitMs, chargeAfter: holdReleasesAt(bill) }
     const capture = await captureAuthorization({ authorizationId: bill.match.authorizationId, amountCents: bill.match.amountCents, invoiceId: `${ledger.number}-M` })
     if (capture.status !== 'COMPLETED') throw new HttpError(502, 'PayPal did not complete the match capture.', 'capture_failed')
     registerAppCapture(capture.id)
@@ -293,5 +293,6 @@ export function cardView(bill, ledger, check, nowMs = now()) {
     noRefundsSoFar: ledger.refunds.length === 0,
     closesBill: true,
     waitMinutes: config.holderSettleMinutes,
+    chargeAfter: holdReleasesAt(bill),
   }
 }

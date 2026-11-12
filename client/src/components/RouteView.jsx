@@ -1,4 +1,5 @@
 import { usd } from '../api.js'
+import RecordedRun from './RecordedRun.jsx'
 
 const ROUTE_TITLE = {
   R1: 'R1 Match on invoice',
@@ -53,6 +54,8 @@ export default function RouteView({ analysis }) {
       <section className={`route route-${decision.route}`}>
         <div><span className="tag server">Server</span> {ROUTE_TITLE[decision.route]} <span className="muted">({decision.code.replaceAll('_', ' ')})</span></div>
         <div><span className="tag model">Agent</span> {analysis.explanation} <span className="tiny muted">[{analysis.sources.explainer}]</span></div>
+        <p className="tiny muted">Read by [{analysis.sources.reader}]. Route decided by the server.</p>
+        <RecordedRun run={analysis.recording} />
         {decision.route === 'R2' && <p className="tiny muted">Pay on PayPal's invoice. The biller's invoice email carries the link; Settled does not build a payment link from the document.</p>}
       </section>
     </div>

@@ -1,4 +1,4 @@
-import { dayLabel, usd } from '../api.js'
+import { dayLabel, timeLabel, usd, windowWords } from '../api.js'
 
 // A card is short on purpose: four lines up front, the risks one click away.
 export default function MatchCard({ card, index, total, windowMinutes, shortened, matchMode, busy, onHold, onSkip }) {
@@ -16,7 +16,7 @@ export default function MatchCard({ card, index, total, windowMinutes, shortened
       <p><strong>Your match: {usd(card.matchCents)} to {card.billerName}</strong> - closes the bill</p>
       {capture
         ? <p>Their part has stayed paid for the whole window{shortened ? ' (demo: shortened)' : ''}. You are charged when you approve on PayPal; nothing is held.</p>
-        : <p>Held now, charged {windowMinutes >= 60 ? `in ${Math.round(windowMinutes / 1440)} days` : 'at the next settle run'} if their part stays paid{shortened ? ' (demo: shortened)' : ''}</p>}
+        : <p>Held now, charged {card.chargeAfter > Date.now() ? <>after <strong>{timeLabel(card.chargeAfter)}</strong></> : 'at the next settle run'} if their part stays paid (window {windowWords(windowMinutes)}{shortened ? ', shortened for the demo; production is 3 days' : ''})</p>}
       <details>
         <summary>What could happen</summary>
         <ul>

@@ -6,6 +6,11 @@ const publicUrl = (process.env.PUBLIC_URL || `http://localhost:${port}`).replace
 // LLM_BACKEND=account runs the model through the developer's Claude Code login. It never reads ANTHROPIC_API_KEY.
 const llmBackend = !forceMock && process.env.LLM_BACKEND === 'account' ? 'account' : 'api'
 const matchMode = process.env.MATCH_MODE === 'capture_after_window' ? 'capture_after_window' : 'hold'
+const paypalKeysSet = !forceMock && !!process.env.PAYPAL_CLIENT_ID && !!process.env.PAYPAL_CLIENT_SECRET
+export const PRODUCTION_WINDOW_MINUTES = 4320
+// Stand-in mode defaults to a 1-minute window so the judge path finishes; the sandbox defaults to production (3 days).
+const DEFAULT_WINDOW_MINUTES = paypalKeysSet ? PRODUCTION_WINDOW_MINUTES : 1
+const envNumber = (name, fallback) => (process.env[name] === undefined || process.env[name] === '' ? fallback : Number(process.env[name]))
 
 export const config = {
   port,
@@ -16,7 +21,9 @@ export const config = {
   paypalClientId: forceMock ? '' : process.env.PAYPAL_CLIENT_ID || '',
   paypalClientSecret: forceMock ? '' : process.env.PAYPAL_CLIENT_SECRET || '',
   // Minutes between the holder's capture and the earliest match capture (production: 3 days).
-  holderSettleMinutes: Number(process.env.HOLDER_SETTLE_MINUTES || 4320),
+  holderSettleMinutes: envNumber('HOLDER_SETTLE_MINUTES', DEFAULT_WINDOW_MINUTES),
+  // How often the in-process settle job runs (captures holds whose window is over).
+  settleJobSeconds: envNumber('SETTLE_JOB_SECONDS', paypalKeysSet ? 30 : 5),
   // hold = AUTHORIZE now, capture after the window (needs the biller's own app credentials to release).
   // capture_after_window = the card appears only after the window, then one CAPTURE order (nothing to release).
   matchMode,
@@ -42,7 +49,7 @@ export const llmLabel = () => {
   return config.llmBackend === 'account' ? 'Claude Sonnet (local account)' : 'Claude (API key)'
 }
 
-export const DEMO_SHORTENED_WINDOW = config.holderSettleMinutes < 4320
+export const DEMO_SHORTENED_WINDOW = config.holderSettleMinutes < PRODUCTION_WINDOW_MINUTES
 
 // Problems worth saying out loud at startup. Pure so a test can feed it any setup.
 export function configWarnings(c = config, m = modes) {

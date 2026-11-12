@@ -3,6 +3,7 @@ import { api, usd } from '../api.js'
 import MatchCard from './MatchCard.jsx'
 import PatronRules from './PatronRules.jsx'
 import PatronHolds from './PatronHolds.jsx'
+import RecordedRun from './RecordedRun.jsx'
 
 const OPTION_TITLE = { A: 'Plan A (most urgent first)', B: 'Plan B (close the most bills)' }
 
@@ -50,6 +51,9 @@ export default function Patron({ state, onChanged, onPay }) {
     await onPay({ role: 'patron', billId: card.billId, order })
   })
   const windowMinutes = state.holdWindowMinutes
+  // A bill this patron already holds or paid leaves the feed and the batch (its button would only answer 409).
+  const taken = new Set(state.patron.holds.filter((h) => ['ordered', 'held', 'captured'].includes(h.status)).map((h) => h.billId))
+  const open = (list) => list.filter((card) => !taken.has(card.billId))
 
   return (
     <div className="stack">
@@ -68,7 +72,8 @@ export default function Patron({ state, onChanged, onPay }) {
         {plan && (
           <div className="plan">
             <p><span className="tag model">Agent</span> {plan.narrative} <span className="tiny muted">[{plan.source}]</span></p>
-            <p className="tiny muted">Every bill is at most {usd(plan.capCents)}; totals stay within {usd(plan.budgetCents)} (server-checked). Options are computed by the server; no option is beaten by another set of bills.</p>
+            <RecordedRun run={plan.recording} />
+            <p className="tiny muted">Every bill is at most {usd(plan.capCents)}; totals stay within {usd(plan.budgetCents)} (server-checked). Options are computed by the server; no option is beaten by another set of {plan.truncated ? `the ${plan.enumerated} most urgent bills (more bills fit; only these were compared)` : 'these bills'}.</p>
             {plan.skipped.length > 0 && <p className="tiny warn">{plan.skipped.length} skipped: {plan.skipped.map((s) => `${s.invoiceNumber} (${s.reason})`).join(', ')}</p>}
             <div className="options">{plan.options.map((o) => <OptionBox key={o.id} option={o} onChoose={choose} busy={busy} />)}</div>
             {plan.options.length === 0 && <p className="muted">No bill fits right now. Open bills appear here as holders pay their part.</p>}
@@ -77,13 +82,13 @@ export default function Patron({ state, onChanged, onPay }) {
         {cards && (
           <div className="cards">
             {cards.dropped.length > 0 && <p className="tiny warn">Dropped on recheck: {cards.dropped.map((d) => `${d.invoiceNumber} (${d.reason})`).join(', ')}</p>}
-            {cards.cards.map((card, i) => <MatchCard key={card.billId} card={card} index={i} total={cards.cards.length} windowMinutes={windowMinutes} shortened={state.demoShortenedWindow} matchMode={state.modes.matchMode} busy={busy} onHold={hold} />)}
+            {open(cards.cards).map((card, i, list) => <MatchCard key={card.billId} card={card} index={i} total={list.length} windowMinutes={windowMinutes} shortened={state.demoShortenedWindow} matchMode={state.modes.matchMode} busy={busy} onHold={hold} />)}
           </div>
         )}
         {feed && !cards && (
           <div className="cards">
-            {feed.cards.length === 0 && <p className="muted">No open bills fit your rules yet.</p>}
-            {feed.cards.map((card) => <MatchCard key={card.billId} card={card} windowMinutes={windowMinutes} shortened={state.demoShortenedWindow} matchMode={state.modes.matchMode} busy={busy} onHold={hold} />)}
+            {open(feed.cards).length === 0 && <p className="muted">No open bills fit your rules yet.</p>}
+            {open(feed.cards).map((card) => <MatchCard key={card.billId} card={card} windowMinutes={windowMinutes} shortened={state.demoShortenedWindow} matchMode={state.modes.matchMode} busy={busy} onHold={hold} />)}
             {feed.skipped.length > 0 && <p className="tiny warn">{feed.skipped.length} skipped: {feed.skipped.map((s) => `${s.invoiceNumber} (${s.reason})`).join(', ')}</p>}
           </div>
         )}
