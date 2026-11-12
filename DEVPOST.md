@@ -31,8 +31,8 @@ A mid-size water or power utility that already sends PayPal invoices and runs a 
 
 | Today | Needs PayPal or a partner |
 |---|---|
-| Payee orders captured on another merchant account in the PayPal Sandbox, a hold authorized, captured and voided as the biller, a refund, idempotent create (ids below) | The Invoicing feature on the separate Riverside app, so the same invoice record runs with a biller that is not the app's own account |
-| The full flow inside the app in the PayPal Sandbox: holder pays and approves on PayPal, a patron in another session holds and approves, the settle job captures, both captures are recorded and the invoice is closed (INV2-46D3-DRWW-CZ9Z-EUK3 `MARKED_AS_PAID`, captures 1XA83390EB780180D and 8W5514277L700964E). The biller there is the app's own sandbox business account. A release voided authorization 38C66344V0654964E | Onboarding a real utility as a PayPal merchant |
+| Payee orders captured on another merchant account in the PayPal Sandbox, a hold authorized, captured and voided as the biller, a refund, idempotent create (ids below) | Onboarding a real utility as a PayPal merchant |
+| The full flow inside the app in the PayPal Sandbox with Riverside as its own PayPal app: holder pays and approves on PayPal, a patron in another session holds and approves, the settle job captures, both captures are recorded on Riverside's invoice and it closes (INV2-4YWC-MUX7-VLW6-C72C `MARKED_AS_PAID`, captures 3WV48562595474619 and 0P907595PC6764107). A release voided authorization 3EV077502S8023244, and a biller refund of the holder part voided the hold (refund 8C439254B28295732, authorization 1LJ682639S486245A) | |
 | Claude Sonnet's real runs (recorded in the app) reading the papers and planning, with a hidden instruction reported and not followed | The hosted Claude API path (only the local account path was run) |
 | | Refund and dispute webhooks (today the settle job polls) |
 
@@ -54,7 +54,7 @@ A mid-size water or power utility that already sends PayPal invoices and runs a 
 
 ## Accomplishments that we're proud of
 
-- Real sandbox results with ids: a payee order captured on the Riverside business account (order 1YM58126NG301100N, capture 5V973346CM946373X, fee paid by the payee), an AUTHORIZE order authorized and captured (authorization 3AR14874A6278953U, capture 94T771459L404044W), a hold voided as the biller app (authorization 6KH08201LE3777732 `VOIDED`), a biller refund (refund 07J41073AN345254V), and the same `PayPal-Request-Id` returning the same order twice (order 7CL75003489574914). They are listed in the README and in the app under Activity.
+- Real sandbox results with ids: a payee order captured on the Riverside business account (order 1YM58126NG301100N, capture 5V973346CM946373X, fee paid by the payee), an AUTHORIZE order authorized and captured (authorization 3AR14874A6278953U, capture 94T771459L404044W), a hold voided as the biller app (authorization 6KH08201LE3777732 `VOIDED`), a biller refund (refund 07J41073AN345254V), and the same `PayPal-Request-Id` returning the same order twice (order 7CL75003489574914). And the whole path to a paid invoice inside the app with Riverside as its own PayPal app (invoice INV2-4YWC-MUX7-VLW6-C72C `MARKED_AS_PAID`). They are listed in the README and in the app under Activity.
 - The model was run for real through a local Claude account (not the hosted API) and the runs are saved in the app: it reported the hidden instruction and did not follow it, the server refused the paper on its own, and in planning it checked the skipped bill and both near-shutoff bills before describing the options.
 - Rules for money are tested: shares and rounding, one open matched bill per PayPal account, a double settle charges once, two patrons on one bill make one match, a reversal voids the hold, other sessions cannot touch a bill.
 
@@ -66,7 +66,6 @@ A mid-size water or power utility that already sends PayPal invoices and runs a 
 
 ## What's next
 
-- Turn on the Invoicing feature for a separate biller app and run the same record, PAID and hold flow with the biller as its own PayPal app.
 - Receive refund and dispute webhooks instead of polling.
 - Run the hosted API path for the reader, and host a public demo.
 - Institutional patrons: a city fund or an employer sets rules once ("water bills in our ZIP codes, holder pays at least 1/2") and approves a batch of cards.
@@ -74,6 +73,8 @@ A mid-size water or power utility that already sends PayPal invoices and runs a 
 - Onboard a real biller. Matching is a commitment device, not fraud proofing, and a payment can still be reversed later: PayPal buyer protection disputes can be opened up to 180 days after a payment ([PayPal Buyer Protection](https://www.paypal.com/us/legalhub/paypal/buyer-protection)).
 
 ## Testing instructions
+
+**Try it:** https://settled.35-216-2-121.sslip.io (hosted demo: PayPal stand-in, recorded Claude Sonnet runs, 1-minute hold window; no login).
 
 No account or key is needed. Keep `.env` as copied from `.env.example`: the stand-in uses a 1-minute hold window and runs the settle job every 5 seconds.
 

@@ -23,6 +23,8 @@ export const config = {
   anthropicModel: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5',
   paypalClientId: forceMock ? '' : process.env.PAYPAL_CLIENT_ID || '',
   paypalClientSecret: forceMock ? '' : process.env.PAYPAL_CLIENT_SECRET || '',
+  // Id of the sandbox webhook pointing at <PUBLIC_URL>/api/webhooks/paypal (VERIFY V9). Empty: webhooks are refused.
+  paypalWebhookId: forceMock ? '' : process.env.PAYPAL_WEBHOOK_ID || '',
   // Minutes between the holder's capture and the earliest match capture (production: 3 days).
   holderSettleMinutes: envNumber('HOLDER_SETTLE_MINUTES', DEFAULT_WINDOW_MINUTES),
   // How often the in-process settle job runs (captures holds whose window is over).

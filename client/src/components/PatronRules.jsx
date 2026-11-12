@@ -40,18 +40,20 @@ export default function PatronRules({ state, onChanged }) {
   return (
     <section className="panel">
       <h3>Rules (filters)</h3>
-      <div className="row wrap rules">
-        <label>Monthly budget $<input type="number" min="1" value={form.budget} onChange={set('budget')} /></label>
-        <label>Per bill up to $<input type="number" min="1" value={form.cap} onChange={set('cap')} /></label>
-        <label>Holder pays at least
-          <select value={form.floor} onChange={set('floor')}><option>1/3</option><option>1/2</option><option>2/3</option></select>
+      <div className="rules">
+        <div className="rule-grid">
+          <label>Monthly budget $<input type="number" min="1" value={form.budget} onChange={set('budget')} /></label>
+          <label>Per bill up to $<input type="number" min="1" value={form.cap} onChange={set('cap')} /></label>
+          <label>Holder pays at least
+            <select value={form.floor} onChange={set('floor')}><option>1/3</option><option>1/2</option><option>2/3</option></select>
+          </label>
+          <label>State<input value={form.region} onChange={set('region')} maxLength={2} /></label>
+        </div>
+        <button className="primary block" onClick={save}>Save rules</button>
+        <label>Or describe them
+          <textarea rows={3} placeholder='"$200 a month, up to $90 per bill, holder pays at least 1/2"' value={sentence} onChange={(e) => setSentence(e.target.value)} />
         </label>
-        <label>State<input value={form.region} onChange={set('region')} maxLength={2} className="short" /></label>
-        <button className="primary" onClick={save}>Save rules</button>
-      </div>
-      <div className="row wrap">
-        <input className="wide" placeholder='Or describe them: "$200 a month, up to $90 per bill, holder pays at least 1/2"' value={sentence} onChange={(e) => setSentence(e.target.value)} />
-        <button className="ghost" onClick={draft} disabled={sentence.length < 3}>Draft rules</button>
+        <button className="ghost block" onClick={draft} disabled={sentence.length < 3}>Draft rules</button>
       </div>
       {draftedBy && <p className="tiny muted">Draft filled in above by [{draftedBy}]. Check it, then press Save rules.</p>}
       <p className="tiny muted">Spent {usd(state.patron.spentCents)} this month, {usd(state.patron.remainingCents)} left. {saved || state.patron.saved ? 'Rules saved.' : 'Showing defaults; save to keep them.'}</p>

@@ -22,9 +22,9 @@ export default function RouteView({ analysis }) {
   const amountBlocked = findings.some((f) => f.code === 'amount_match' && !f.ok)
   return (
     <div className="route-view">
-      <div className="two-col">
+      <div className="two-col compare">
         <section className="panel untrusted">
-          <h4>What the document says</h4>
+          <h4><span className="flag">Untrusted</span>What the document says</h4>
           <dl>
             <dt>Biller</dt><dd>{doc.billerName}</dd>
             <dt>Invoice</dt><dd>{doc.invoiceNumber}</dd>
@@ -37,9 +37,10 @@ export default function RouteView({ analysis }) {
               {doc.instructions.map((line) => <p key={line}>"{line}"</p>)}
             </div>
           )}
+          <p className="src">Read by [{analysis.sources.reader}]. Reported only, never used to pay.</p>
         </section>
         <section className="panel trusted">
-          <h4>What decides the money</h4>
+          <h4><span className="flag">Decides the money</span>What decides the money</h4>
           <dl>
             <dt>Payee</dt><dd>{payee ? `${payee.name} (${payee.source})` : 'none: not in the registry'}</dd>
             <dt>Amount due</dt><dd>{ledger ? `${usd(ledger.dueCents)} (biller ledger)` : 'no ledger invoice'}</dd>
@@ -47,13 +48,13 @@ export default function RouteView({ analysis }) {
             {doc.instructions.length > 0 && <><dt>Instruction</dt><dd className="bad">ignored by server, and the paper is refused because of it</dd><dt>Payee unchanged</dt><dd className="good">{payee ? `${payee.name} (${payee.source})` : 'none'}</dd></>}
           </dl>
           <ul className="findings">
-            {findings.map((f) => <li key={f.code} className={f.ok ? 'good' : 'bad'}>{f.ok ? 'Pass' : 'Fail'}: {FINDING_LABEL[f.code]}</li>)}
+            {findings.map((f) => <li key={f.code} className={f.ok ? 'good' : 'bad'}><span className="ic" aria-hidden="true">{f.ok ? '\u2713' : '\u2715'}</span><span>{f.ok ? 'Pass' : 'Fail'}: {FINDING_LABEL[f.code]}</span></li>)}
           </ul>
         </section>
       </div>
       <section className={`route route-${decision.route}`}>
-        <div><span className="tag server">Server</span> {ROUTE_TITLE[decision.route]} <span className="muted">({decision.code.replaceAll('_', ' ')})</span></div>
-        <div><span className="tag model">Agent</span> {analysis.explanation} <span className="tiny muted">[{analysis.sources.explainer}]</span></div>
+        <div className="route-line"><span className="tag server">Server</span><div><strong>{ROUTE_TITLE[decision.route]}</strong> <span className="muted">({decision.code.replaceAll('_', ' ')})</span></div></div>
+        <div className="route-line"><span className="tag model">Agent</span><div>{analysis.explanation} <span className="tiny muted">[{analysis.sources.explainer}]</span></div></div>
         <p className="tiny muted">Read by [{analysis.sources.reader}]. Route decided by the server.</p>
         <RecordedRun run={analysis.recording} />
         {decision.route === 'R2' && <p className="tiny muted">Pay on PayPal's invoice. The biller's invoice email carries the link; Settled does not build a payment link from the document.</p>}

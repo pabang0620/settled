@@ -8,9 +8,9 @@ export default function MatchCard({ card, index, total, windowMinutes, shortened
     <article className="card patron-card">
       <header>
         <span className="label orange">Patron's match</span>
-        {total > 1 && <span className="tiny muted"> Card {index + 1} of {total}</span>}
+        {total > 1 && <span className="tiny muted">Card {index + 1} of {total}</span>}
       </header>
-      <h4>{card.billerName} - {card.category} - {card.region}</h4>
+      <h4>{card.billerName} <span className="muted">- {card.category} - {card.region}</span></h4>
       <p className="tiny">{card.invoiceNumber} {card.accountMask} - {dueWords(card.dueDate)}{card.urgency?.kind === 'shutoff' && <> - shutoff {dayLabel(card.urgency.date)}{days != null && days >= 0 && <> (in {days} days)</>}</>}</p>
       <p>{usd(card.holderPaidCents)} already paid on this invoice through Settled by the account holder's PayPal login ({card.noRefundsSoFar ? 'no refunds so far' : 'refund recorded'})</p>
       <p><strong>Your match: {usd(card.matchCents)} to {card.billerName}</strong> - closes the bill</p>
@@ -26,7 +26,7 @@ export default function MatchCard({ card, index, total, windowMinutes, shortened
           <li>Biller will see: your PayPal name and email.</li>
         </ul>
       </details>
-      <div className="row">
+      <div className="row wrap">
         <button className="primary orange" disabled={busy} onClick={() => onHold(card)}>{capture ? 'Match' : 'Hold'} {usd(card.matchCents)} for {card.billerName}</button>
         {onSkip && <button className="ghost" onClick={() => onSkip(card)}>Skip</button>}
       </div>

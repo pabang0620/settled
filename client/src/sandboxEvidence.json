@@ -31,7 +31,35 @@
     },
     {
       "check": "PAID",
-      "what": "The app in sandbox mode, end to end: holder pays and approves on PayPal, a patron in another session holds and approves, the settle job captures after the window, both captures recorded on the invoice (biller = the app's own sandbox business account)",
+      "what": "The app in sandbox mode with Riverside as its own PayPal app: Riverside's app creates, sends and records the invoice (Agent Toolkit); holder pays, a patron in another session holds, the settle job captures after the window",
+      "status": "pass",
+      "ids": [
+        "invoice INV2-4YWC-MUX7-VLW6-C72C (INV-8331) MARKED_AS_PAID, due 0.00",
+        "holder order 10159141AW160921D, capture 3WV48562595474619 $50.75, recorded EXTR-6XX9123548695464G",
+        "patron order 78A10805VE078452V, authorization 17N15873N1547330G CAPTURED, capture 0P907595PC6764107 $50.75, recorded EXTR-70C48691VV349323B"
+      ]
+    },
+    {
+      "check": "Release",
+      "what": "Riverside's own app: patron releases a hold, nothing charged",
+      "status": "pass",
+      "ids": [
+        "invoice INV2-6SNZ-CYYH-WT24-JBD4 PARTIALLY_PAID, holder capture 6NY33787GX085131R",
+        "authorization 3EV077502S8023244 VOIDED"
+      ]
+    },
+    {
+      "check": "V4",
+      "what": "Riverside's own app: biller refunds the holder part, the settle job releases the hold",
+      "status": "pass",
+      "ids": [
+        "refund 8C439254B28295732, capture 1WS70995FV7840845 REFUNDED",
+        "authorization 1LJ682639S486245A VOIDED (holder_reversed), nothing charged"
+      ]
+    },
+    {
+      "check": "PAID",
+      "what": "The app in sandbox mode, end to end: holder pays and approves on PayPal, a patron in another session holds and approves, the settle job captures after the window, both captures recorded on the invoice (earlier run: biller = the app's own sandbox business account)",
       "status": "pass",
       "ids": [
         "invoice INV2-46D3-DRWW-CZ9Z-EUK3 (INV-5805) MARKED_AS_PAID, due 0.00",
@@ -50,7 +78,7 @@
     },
     {
       "check": "Release",
-      "what": "The app in sandbox mode: patron releases a hold, nothing charged",
+      "what": "Single-merchant run: patron releases a hold, nothing charged",
       "status": "pass",
       "ids": [
         "holder capture 0XL33347CL743351W recorded, invoice INV2-DQHK-Q9KY-WMA7-DN57 PARTIALLY_PAID",
@@ -107,14 +135,6 @@
       "status": "pass",
       "ids": [
         "authorization 0ET240840K915803T: 204, read back VOIDED"
-      ]
-    },
-    {
-      "check": "V3",
-      "what": "Invoice record with the separate Riverside app's own credentials",
-      "status": "blocked",
-      "ids": [
-        "that app has no Invoicing feature yet (403); a person enables it in the developer dashboard"
       ]
     }
   ]

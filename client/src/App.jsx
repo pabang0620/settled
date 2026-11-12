@@ -57,12 +57,13 @@ export default function App() {
     refresh().then(done)
   }, [refresh, finish])
 
-  async function onPay({ role, billId, order, goto, autoSettle }) {
+  // `info` is display only (biller, invoice, amounts already on screen) for the stand-in checkout.
+  async function onPay({ role, billId, order, goto, autoSettle, info }) {
     if (order.approvalUrl && !order.approvalUrl.startsWith('mock:')) {
       window.location.href = order.approvalUrl
       return
     }
-    setCheckout({ role, billId, order, goto, autoSettle })
+    setCheckout({ role, billId, order, goto, autoSettle, info })
   }
 
   async function closeCheckout(done) {
@@ -79,40 +80,58 @@ export default function App() {
     await refresh()
   }
 
-  if (!state) return <main className="app"><p>{error || 'Loading...'}</p></main>
+  if (!state) return (
+    <main className="page">
+      {error ? <><p role="alert">Could not load your bill. {error}</p><button onClick={refresh}>Retry loading this session</button></> : <p>Loading...</p>}
+    </main>
+  )
   const sandboxText = state.modes.biller === 'self' ? "PayPal Sandbox (Riverside played by the app's own sandbox business account)" : 'PayPal Sandbox'
-  const modeText = state.modes.paypal === 'mock' ? 'PayPal stand-in (no real calls)' : sandboxText
+  const mock = state.modes.paypal === 'mock'
+  const modeText = mock ? 'PayPal stand-in (no real calls)' : sandboxText
 
   return (
-    <main className="app">
-      <header className="topbar">
-        <strong className="brand">Settled</strong>
-        <nav aria-label="Sections">
-          {TABS.map(([id, label]) => <button key={id} className={tab === id ? 'tab on' : 'tab'} onClick={() => setTab(id)}>{label}</button>)}
-        </nav>
-        <button className="ghost" onClick={() => { forgetSession(); window.location.reload() }}>New session</button>
-        <span className="mode">{modeText} - {state.modes.llm === 'live' ? state.modes.llmLabel : 'Claude: stand-in, replays recorded Sonnet runs'}{state.demoShortenedWindow ? ` - hold window ${windowWords(state.holdWindowMinutes)} (demo; production 3 days)` : ''}</span>
+    <div className="shell">
+      <header className="top">
+        <div className="top-in">
+          <strong className="brand"><img className="brand-logo brand-logo--chip" src="/logo-512.png" width="28" height="28" alt="Settled" />Settled</strong>
+          <nav aria-label="Sections">
+            {TABS.map(([id, label]) => <button key={id} className={tab === id ? 'tab on' : 'tab'} onClick={() => setTab(id)}>{label}</button>)}
+          </nav>
+          <div className="top-right">
+            <span className={mock ? 'mode' : 'mode live'}><span className="dot" aria-hidden="true" />{modeText} - {state.modes.llm === 'live' ? state.modes.llmLabel : 'Claude: stand-in, replays recorded Sonnet runs'}{state.demoShortenedWindow ? ` - hold window ${windowWords(state.holdWindowMinutes)} (demo; production 3 days)` : ''}</span>
+            <button className="ghost" onClick={() => { forgetSession(); window.location.reload() }}>New session</button>
+          </div>
+        </div>
       </header>
-      {error && <p className="error banner">{error}</p>}
-      {tab === 'home' && <Home state={state} go={setTab} onChanged={refresh} onPay={onPay} />}
-      {tab === 'holder' && <Holder state={state} onChanged={refresh} onPay={onPay} />}
-      {tab === 'patron' && <Patron state={state} onChanged={refresh} onPay={onPay} />}
-      {tab === 'biller' && <Biller state={state} onChanged={refresh} />}
-      {tab === 'log' && (
-        <>
-          <section className="panel"><h3>Activity</h3><ActivityLog items={state.activity} /></section>
-          <SandboxEvidence />
-        </>
-      )}
+      <main className="page">
+        {error && <p className="error banner">{error}</p>}
+        {tab === 'home' && <Home state={state} go={setTab} onChanged={refresh} onPay={onPay} />}
+        {tab === 'holder' && <Holder state={state} onChanged={refresh} onPay={onPay} />}
+        {tab === 'patron' && <Patron state={state} onChanged={refresh} onPay={onPay} />}
+        {tab === 'biller' && <Biller state={state} onChanged={refresh} />}
+        {tab === 'log' && (
+          <>
+            <div className="pagehead"><div><p className="eyebrow">Activity</p><h1>Every model output, server decision and PayPal call</h1></div></div>
+            <div className="stack">
+              <section className="panel"><h3>Activity</h3><ActivityLog items={state.activity} /></section>
+              <SandboxEvidence />
+            </div>
+          </>
+        )}
+      </main>
       {checkout && (
         <MockCheckout
           order={checkout.order}
+          info={checkout.info}
+          role={checkout.role}
+          matchMode={state.modes.matchMode}
+          windowText={`${windowWords(state.holdWindowMinutes)}${state.demoShortenedWindow ? ', shortened for the demo' : ''}`}
           payee="the biller (registry payee)"
           persona={checkout.role === 'holder' ? 'me' : 'patron'}
           onDone={() => closeCheckout(true)}
           onCancel={() => closeCheckout(false)}
         />
       )}
-    </main>
+    </div>
   )
 }

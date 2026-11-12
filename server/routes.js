@@ -17,6 +17,7 @@ import { screenText } from './screen.js'
 import { mockOrders, mockReverseCapture } from './integrations/mockPaypal.js'
 import { createHash } from 'node:crypto'
 import { loadLedger } from './ledger.js'
+import { handleWebhook, webhookStatus } from './webhooks.js'
 
 export const api = express.Router()
 
@@ -54,6 +55,7 @@ api.get('/state', async (req, res) => {
     bills,
     patron: { rules: rulesOf(session), saved: !!session.patron.rules, spentCents: spentCents(session), remainingCents: remainingCents(session), holds },
     activity: session.activity.slice(-40),
+    webhooks: webhookStatus(),
   })
 })
 
@@ -152,6 +154,9 @@ api.post('/ops/settle', async (req, res) => {
   if (!config.opsKey || req.get('x-ops-key') !== config.opsKey) throw new HttpError(403, 'Operator key required.', 'ops_forbidden')
   ok(res, await settleDue())
 })
+// PayPal webhook (VERIFY V9): verified refund, reversal and dispute events re-read the holder's bill at once.
+api.post('/webhooks/paypal', handleWebhook)
+
 api.post('/ops/dispute/:id', async (req, res) => {
   if (!config.opsKey || req.get('x-ops-key') !== config.opsKey) throw new HttpError(403, 'Operator key required.', 'ops_forbidden')
   ok(res, await flagDispute(idParam(req)))

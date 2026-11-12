@@ -1,6 +1,10 @@
+<img src="client/public/logo-512.png" width="128" alt="logo" />
+
 # Settled
 
-**Half & Half: you pay your part of a real bill to the biller through Settled, a stranger matches the rest, and both payments go to the biller and are recorded on its PayPal invoice (run end to end in the PayPal Sandbox with the biller played by the app's own sandbox business account; see Sandbox evidence). The bill is untrusted input: the AI only reads it, and the payee comes from a biller registry and the biller's ledger, never from the document.**
+**Try it:** https://settled.35-216-2-121.sslip.io (hosted demo: PayPal stand-in, recorded Claude Sonnet runs, 1-minute hold window; no login).
+
+**Half & Half: you pay your part of a real bill to the biller through Settled, a stranger matches the rest, and both payments go to the biller and are recorded on its PayPal invoice (run end to end in the PayPal Sandbox with Riverside as its own PayPal app; see Sandbox evidence). The bill is untrusted input: the AI only reads it, and the payee comes from a biller registry and the biller's ledger, never from the document.**
 
 The bill is untrusted. The payee isn't.
 
@@ -43,7 +47,7 @@ With no keys the app runs fully on built-in stand-ins whose response shapes foll
 
 ### Sandbox demo mode
 
-With sandbox keys in `.env` (`PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`) and `SANDBOX_SELF_BILLER_MERCHANT_ID` set to the merchant id of the business account behind those keys, `npm run demo:sandbox` runs the real PayPal flow with a 1-minute window and an open feed: Riverside is played by that business account, so invoice creation, both captures, the invoice record and a release all work with one REST app. The header says "PayPal Sandbox (Riverside played by the app's own sandbox business account)". Use two different sandbox personal accounts for the holder and the patron, in two browser sessions. Without `SANDBOX_SELF_BILLER_MERCHANT_ID` the app uses Riverside's own app credentials (`RIVERSIDE_*`). Without keys it stays on the stand-in.
+With sandbox keys in `.env` (`PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` for the payee orders, `RIVERSIDE_MERCHANT_ID`, `RIVERSIDE_CLIENT_ID`, `RIVERSIDE_CLIENT_SECRET` for Riverside's own app with the Invoicing feature), `npm run demo:sandbox` runs the real PayPal flow with a 1-minute window and an open feed: Riverside's app creates, sends and records the invoice and releases holds, the shared app creates the payee orders. The header says "PayPal Sandbox". `node scripts/biller-scope.js` checks that Riverside's app token has the Invoicing scope. Use two different sandbox personal accounts for the holder and the patron, in two browser sessions. With only one REST app, set `SANDBOX_SELF_BILLER_MERCHANT_ID` to the merchant id of the business account behind it: Riverside is then played by that account and the header says "PayPal Sandbox (Riverside played by the app's own sandbox business account)". Without keys it stays on the stand-in.
 
 ## Judge walk-through (about 4 minutes, one minute of it waiting)
 
@@ -110,7 +114,9 @@ Real PayPal Sandbox calls made through the SDK (and the Agent Toolkit where note
 | In-app PAID path | The app itself in sandbox mode (`npm run demo:sandbox`), biller = the app's own sandbox business account RLMTMHVTY3E42. Holder pressed Pay my part and approved on PayPal; a patron in another browser session pressed Hold and approved; the settle job captured after the window | PASS | invoice INV2-46D3-DRWW-CZ9Z-EUK3 (INV-5805, $120.00): holder order 918156118R290951V, capture 1XA83390EB780180D $60.00; patron order 6XA11803904094326 (AUTHORIZE), authorization 1J127616CJ147762H `CAPTURED`, capture 8W5514277L700964E $60.00; invoice `MARKED_AS_PAID`, due 0.00, both captures on the ledger |
 | V3, V7 | Agent Toolkit `record_payment_for_invoice` from the app | PASS (with a finding) | PayPal answers 404 to any `payment_id`, even a capture on the invoicer's own account, and stores every recorded payment as type `EXTERNAL`, method `PAYPAL`, with its own id (EXTR-5E570351PF431291C, EXTR-4JN06872M7730020Y). Two recorded payments that cover the total make the invoice `MARKED_AS_PAID`, not `PAID`. The app now writes the capture id into the entry's `note` and reads it back from there |
 | In-app release | Same setup, patron pressed Release while held | PASS | holder capture 0XL33347CL743351W recorded (invoice INV2-DQHK-Q9KY-WMA7-DN57 `PARTIALLY_PAID`), patron order 3FV78050YJ414083M, authorization 38C66344V0654964E `VOIDED`, nothing charged |
-| V3 with Riverside's own app | `record_payment_for_invoice` as the separate Riverside app | blocked | that app has no Invoicing feature yet (403); a person enables it in the developer dashboard |
+| In-app PAID path, Riverside's own app | The app in sandbox mode with the biller as a separate PayPal app (`npm run demo:sandbox`, `SANDBOX_SELF_BILLER_MERCHANT_ID` empty): Riverside's app creates, sends, records (Agent Toolkit) and voids; payee orders go to merchant H5YUF48MJXAB4 | PASS | invoice INV2-4YWC-MUX7-VLW6-C72C (INV-8331, $101.50): holder order 10159141AW160921D, capture 3WV48562595474619 $50.75 (EXTR-6XX9123548695464G); patron order 78A10805VE078452V, authorization 17N15873N1547330G `CAPTURED`, capture 0P907595PC6764107 $50.75 (EXTR-70C48691VV349323B); invoice `MARKED_AS_PAID`, due 0.00 |
+| In-app release, Riverside's own app | Patron pressed Release while held | PASS | invoice INV2-6SNZ-CYYH-WT24-JBD4 `PARTIALLY_PAID` (holder capture 6NY33787GX085131R), authorization 3EV077502S8023244 `VOIDED` |
+| In-app refund, Riverside's own app | Toolkit `create_refund` as Riverside on the holder capture, then the settle job | PASS | refund 8C439254B28295732, capture 1WS70995FV7840845 `REFUNDED`, hold authorization 1LJ682639S486245A `VOIDED` (`holder_reversed`), nothing charged |
 
 Three real defects the live runs exposed, all fixed and covered by tests:
 
@@ -159,7 +165,7 @@ The recordings are in `server/recorded-runs/*.json`: every model call, every too
 
 ## Limits, stated plainly
 
-- The full path to a paid invoice ran in the sandbox with one merchant playing the biller (the app's own sandbox business account). With a separate biller app (Riverside's own credentials) the payee capture, void and refund work, but its invoice recording waits for the Invoicing feature on that app. A paid invoice reads `MARKED_AS_PAID` in PayPal, because recorded payments are external entries.
+- The full path to a paid invoice ran in the sandbox with Riverside as its own PayPal app (invoice, recording, void and refund on Riverside's credentials), and earlier with the app's own business account playing the biller (`SANDBOX_SELF_BILLER_MERCHANT_ID`). A paid invoice reads `MARKED_AS_PAID` in PayPal, because recorded payments are external entries.
 - Releasing a hold uses the biller's own app credentials. The shared app can authorize and capture for a payee but gets 403 on void. Without those credentials the server warns at startup, and `MATCH_MODE=capture_after_window` avoids holds altogether.
 - The R2 screen does not open a payment link: the invoice returned by the sandbox has no pay-page link, so it says to pay on PayPal's invoice (the link is in the invoice email).
 - Invoices made through the Agent Toolkit carry no due date; the shutoff date set by the biller is what measures urgency.

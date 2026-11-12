@@ -40,6 +40,8 @@ export default function Biller({ state, onChanged }) {
 
   if (!state.billerSession) {
     return (
+      <>
+      <div className="pagehead"><div><p className="eyebrow">I'm a biller</p><h1>Your invoices, your shutoff dates</h1><p className="lede">Settled pays only to registry billers and reads amounts only from your ledger.</p></div></div>
       <section className="panel">
         <h3>I'm a biller</h3>
         <p className="muted">Demo login for the sandbox biller accounts. Sample invoices you create on the "I need help" tab show up here.</p>
@@ -52,17 +54,20 @@ export default function Biller({ state, onChanged }) {
         </div>
         {error && <p className="error">{error}</p>}
       </section>
+      </>
     )
   }
 
   return (
+    <>
+    <div className="pagehead"><div><p className="eyebrow">I'm a biller</p><h1>Your invoices, your shutoff dates</h1><p className="lede">Settled pays only to registry billers and reads amounts only from your ledger.</p></div></div>
     <section className="panel">
       <h3>Biller console: {state.billers.find((b) => b.id === state.billerSession)?.name}</h3>
       {data?.invoices.length === 0 && <p className="muted">No invoices for this session yet. Try a sample bill first.</p>}
       {data?.invoices.map((inv) => (
         <article key={inv.billId} className="card">
           <p><strong>{inv.invoiceNumber}</strong> {inv.accountMask} {usd(inv.totalCents)} {dueWords(inv.dueDate)} - <code>{inv.status}</code> - open balance {usd(inv.dueCents)}</p>
-          <div className="row wrap">
+          <div className="row wrap biller-row">
             <label className="switch"><input type="checkbox" checked={inv.sponsorable} onChange={(e) => patch(inv.billId, { sponsorable: e.target.checked })} /> Sponsorable: {inv.sponsorable ? 'ON' : 'OFF'}</label>
             <label>Shutoff date (set by you) <input type="date" value={inv.disconnectDate || ''} onChange={(e) => patch(inv.billId, { disconnectDate: e.target.value || null })} /></label>
           </div>
@@ -71,5 +76,6 @@ export default function Biller({ state, onChanged }) {
       <p className="tiny muted">App access: {data?.appAccess.join(', ')}.</p>
       {error && <p className="error">{error}</p>}
     </section>
+    </>
   )
 }

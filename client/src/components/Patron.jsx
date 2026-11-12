@@ -19,6 +19,25 @@ function OptionBox({ option, onChoose, busy }) {
   )
 }
 
+// Spent counts a match from the moment its order is placed (server/patron.js); split it into charged and still held.
+function BudgetMeter({ state }) {
+  const budget = state.patron.rules.monthlyBudgetCents
+  const charged = state.patron.holds.filter((h) => h.status === 'captured').reduce((sum, h) => sum + h.matchCents, 0)
+  const held = Math.max(0, state.patron.spentCents - charged)
+  const pct = (cents) => `${budget > 0 ? Math.min(100, (cents / budget) * 100) : 0}%`
+  return (
+    <section className="panel budget" aria-label="Monthly budget">
+      <div className="b-row"><span>Monthly budget</span><span><b>{usd(state.patron.remainingCents)}</b> <span className="muted">left of {usd(budget)}</span></span></div>
+      <div className="meter" aria-hidden="true"><i className="spent" style={{ width: pct(charged) }} /><i className="this" style={{ width: pct(held) }} /></div>
+      <div className="b-key">
+        <span><i className="k spent" />Charged {usd(charged)}</span>
+        <span><i className="k this" />Held or waiting for approval {usd(held)}</span>
+        <span><i className="k left" />Left {usd(state.patron.remainingCents)}</span>
+      </div>
+    </section>
+  )
+}
+
 export default function Patron({ state, onChanged, onPay }) {
   const [text, setText] = useState('Use my last $300 this month, most urgent first')
   const [plan, setPlan] = useState(null)
@@ -48,19 +67,29 @@ export default function Patron({ state, onChanged, onPay }) {
   const prepare = () => act(async () => { await api('POST', '/demo/prepare'); await loadFeed() })
   const hold = (card) => act(async () => {
     const order = await api('POST', `/matches/${card.billId}/request`)
-    await onPay({ role: 'patron', billId: card.billId, order })
+    await onPay({ role: 'patron', billId: card.billId, order, info: { billerName: card.billerName, invoiceNumber: card.invoiceNumber, holderPaidCents: card.holderPaidCents } })
   })
   const windowMinutes = state.holdWindowMinutes
   // A bill this patron already holds or paid leaves the feed and the batch (its button would only answer 409).
   const taken = new Set(state.patron.holds.filter((h) => ['ordered', 'held', 'captured'].includes(h.status)).map((h) => h.billId))
   const open = (list) => list.filter((card) => !taken.has(card.billId))
 
+  const rules = state.patron.rules
   return (
-    <div className="stack">
-      <PatronRules state={state} onChanged={onChanged} />
+    <>
+      <div className="pagehead">
+        <div>
+          <p className="eyebrow">I'm a patron</p>
+          <h1>Give by rule, approve card by card</h1>
+          <p className="lede">Your rules: {usd(rules.monthlyBudgetCents)} a month, up to {usd(rules.perBillCapCents)} per bill, holder pays at least {rules.minHolderShare}, {rules.region}.</p>
+        </div>
+      </div>
+      <div className="body">
+      <div className="stack">
+      <BudgetMeter state={state} />
 
       <section className="panel">
-        <h3><span className="label orange">Patron's match</span> Give by rule, approve card by card</h3>
+        <h3><span className="label orange">Patron's match</span> Bills that fit your rules</h3>
         <div className="row wrap">
           <input className="wide" value={text} onChange={(e) => setText(e.target.value)} aria-label="What do you want to do" maxLength={400} />
           <button className="primary orange" onClick={runPlan} disabled={busy}>Plan my budget</button>
@@ -95,6 +124,11 @@ export default function Patron({ state, onChanged, onPay }) {
       </section>
 
       <PatronHolds state={state} onChanged={onChanged} onPay={onPay} />
-    </div>
+      </div>
+      <aside className="aside">
+        <PatronRules state={state} onChanged={onChanged} />
+      </aside>
+      </div>
+    </>
   )
 }
