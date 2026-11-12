@@ -76,7 +76,7 @@ const demo = {
 
 export function loadDemoRegistry(env = process.env) {
   entries.clear()
-  registerBiller({ ...demo, id: 'riverside', name: 'Riverside Water', merchantId: env.RIVERSIDE_MERCHANT_ID || 'RIVERSIDE0WATER', paymentModes: ['payee_order'] })
+  registerBiller({ ...demo, id: 'riverside', name: 'Riverside Water', merchantId: (env.FORCE_MOCK !== '1' && env.SANDBOX_SELF_BILLER_MERCHANT_ID) || env.RIVERSIDE_MERCHANT_ID || 'RIVERSIDE0WATER', paymentModes: ['payee_order'] })
   registerBiller({ ...demo, id: 'cedar', name: 'Cedar Electric', merchantId: env.CEDAR_MERCHANT_ID || 'CEDAR0ELECTRIC', paymentModes: ['invoice_page'] })
 }
 

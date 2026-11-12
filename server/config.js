@@ -9,6 +9,9 @@ const matchMode = process.env.MATCH_MODE === 'capture_after_window' ? 'capture_a
 const paypalKeysSet = !forceMock && !!process.env.PAYPAL_CLIENT_ID && !!process.env.PAYPAL_CLIENT_SECRET
 export const PRODUCTION_WINDOW_MINUTES = 4320
 // Stand-in mode defaults to a 1-minute window so the judge path finishes; the sandbox defaults to production (3 days).
+// Single-merchant sandbox demo: Riverside is played by the shared app's own sandbox business account,
+// so its invoices, payee captures and voids all belong to one merchant and the full PAID path runs with one REST app.
+const selfBillerMerchantId = paypalKeysSet ? process.env.SANDBOX_SELF_BILLER_MERCHANT_ID || '' : ''
 const DEFAULT_WINDOW_MINUTES = paypalKeysSet ? PRODUCTION_WINDOW_MINUTES : 1
 const envNumber = (name, fallback) => (process.env[name] === undefined || process.env[name] === '' ? fallback : Number(process.env[name]))
 
@@ -34,13 +37,18 @@ export const config = {
   publicFeed: process.env.PUBLIC_FEED === '1',
   // Sandbox credentials of each demo biller. The Agent Toolkit calls run as the biller.
   billerCredentials: {
-    riverside: { clientId: process.env.RIVERSIDE_CLIENT_ID || '', clientSecret: process.env.RIVERSIDE_CLIENT_SECRET || '' },
+    riverside: selfBillerMerchantId
+      ? { clientId: process.env.PAYPAL_CLIENT_ID, clientSecret: process.env.PAYPAL_CLIENT_SECRET }
+      : { clientId: process.env.RIVERSIDE_CLIENT_ID || '', clientSecret: process.env.RIVERSIDE_CLIENT_SECRET || '' },
   },
+  selfBillerMerchantId,
 }
 
 export const modes = {
   llm: config.anthropicKey || llmBackend === 'account' ? 'live' : 'mock',
   paypal: config.paypalClientId && config.paypalClientSecret ? 'sandbox' : 'mock',
+  // self = Riverside is the shared app's own sandbox business account (single-merchant demo).
+  biller: config.selfBillerMerchantId ? 'self' : 'own_app',
 }
 
 // The label the UI and the sources lines show, so a run is never mislabelled.

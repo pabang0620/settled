@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, dayLabel, usd } from '../api.js'
+import { api, dayLabel, usd, dueWords } from '../api.js'
 
 export default function Biller({ state, onChanged }) {
   const [billerId, setBillerId] = useState('riverside')
@@ -61,7 +61,7 @@ export default function Biller({ state, onChanged }) {
       {data?.invoices.length === 0 && <p className="muted">No invoices for this session yet. Try a sample bill first.</p>}
       {data?.invoices.map((inv) => (
         <article key={inv.billId} className="card">
-          <p><strong>{inv.invoiceNumber}</strong> {inv.accountMask} {usd(inv.totalCents)} due {dayLabel(inv.dueDate)} - <code>{inv.status}</code> - open balance {usd(inv.dueCents)}</p>
+          <p><strong>{inv.invoiceNumber}</strong> {inv.accountMask} {usd(inv.totalCents)} {dueWords(inv.dueDate)} - <code>{inv.status}</code> - open balance {usd(inv.dueCents)}</p>
           <div className="row wrap">
             <label className="switch"><input type="checkbox" checked={inv.sponsorable} onChange={(e) => patch(inv.billId, { sponsorable: e.target.checked })} /> Sponsorable: {inv.sponsorable ? 'ON' : 'OFF'}</label>
             <label>Shutoff date (set by you) <input type="date" value={inv.disconnectDate || ''} onChange={(e) => patch(inv.billId, { disconnectDate: e.target.value || null })} /></label>

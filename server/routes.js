@@ -45,7 +45,7 @@ api.get('/state', async (req, res) => {
   for (const bill of mine) bills.push(await holderBillView(session, bill))
   const holds = allBills().filter((b) => b.match.patronSessionId === session.id).map((b) => patronHoldView(session, b))
   ok(res, {
-    modes: { paypal: modes.paypal, llm: modes.llm, llmLabel: llmLabel(), matchMode: config.matchMode },
+    modes: { paypal: modes.paypal, biller: modes.biller, llm: modes.llm, llmLabel: llmLabel(), matchMode: config.matchMode },
     holdWindowMinutes: config.holderSettleMinutes,
     settleJobSeconds: config.settleJobSeconds,
     demoShortenedWindow: DEMO_SHORTENED_WINDOW,

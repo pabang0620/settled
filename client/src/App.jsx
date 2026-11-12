@@ -80,7 +80,8 @@ export default function App() {
   }
 
   if (!state) return <main className="app"><p>{error || 'Loading...'}</p></main>
-  const modeText = state.modes.paypal === 'mock' ? 'PayPal stand-in (no real calls)' : 'PayPal Sandbox'
+  const sandboxText = state.modes.biller === 'self' ? "PayPal Sandbox (Riverside played by the app's own sandbox business account)" : 'PayPal Sandbox'
+  const modeText = state.modes.paypal === 'mock' ? 'PayPal stand-in (no real calls)' : sandboxText
 
   return (
     <main className="app">

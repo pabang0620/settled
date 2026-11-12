@@ -112,8 +112,9 @@ async function recordHolderOnLedger(bill) {
   try {
     await callBiller(billerOf(bill), 'record_payment_for_invoice', { invoiceId: bill.invoiceId, captureId: bill.holder.captureId, amountCents: bill.holder.amountCents })
     bill.holder = { ...bill.holder, ledgerRecorded: true }
-  } catch {
+  } catch (err) {
     // The money is captured; the ledger line is retried by the next completeHolderPayment call.
+    process.stderr.write(`[settled] recording holder capture ${bill.holder.captureId} on ${bill.invoiceId} failed: ${err?.message || err}\n`)
     bill.notices = [...bill.notices, { at: now(), text: 'Your payment was captured and is being recorded on the invoice.' }]
   }
 }

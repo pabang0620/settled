@@ -41,8 +41,14 @@ export const invoicing = {
   async getInvoice(billerId, invoiceId) {
     return live ? liveCall(billerId, 'get_invoice', { invoice_id: invoiceId }) : mockInvoicing.get(invoiceId)
   },
+  // Sandbox 2026-11-12: record-payment answers 404 for any payment_id (even a capture on the invoicer's own account)
+  // and stores every entry as type EXTERNAL with its own EXTR- id. So the capture id travels in the note,
+  // and an entry that already carries it is not recorded twice (a lost answer on the first try).
   async recordPayment(billerId, { invoiceId, captureId, amountCents }) {
-    const args = { invoice_id: invoiceId, payment_id: captureId, method: 'PAYPAL', amount: money(amountCents) }
+    const note = captureNote(captureId)
+    const existing = readLedger(await this.getInvoice(billerId, invoiceId)).payments.find((p) => p.captureRef === captureId)
+    if (existing) return { payment_id: existing.paymentId, alreadyRecorded: true }
+    const args = { invoice_id: invoiceId, method: 'PAYPAL', note, payment_date: new Date().toISOString().slice(0, 10), amount: money(amountCents) }
     return live ? liveCall(billerId, 'record_payment_for_invoice', args) : mockInvoicing.recordPayment(args)
   },
   async createRefund(billerId, { captureId, amountCents }) {
@@ -82,6 +88,11 @@ export const invoicing = {
   },
 }
 
+const NOTE_PREFIX = 'Settled capture '
+export const captureNote = (captureId) => `${NOTE_PREFIX}${captureId}`
+// The capture a ledger entry stands for: the note the app wrote, else a PayPal payment id.
+export const captureRefOf = (t) => (typeof t.note === 'string' && t.note.startsWith(NOTE_PREFIX) ? t.note.slice(NOTE_PREFIX.length).trim() : t.payment_id || null)
+
 // Normalized ledger view used by the rules. Field names follow the Invoicing v2 schema.
 export function readLedger(invoice) {
   return {
@@ -93,7 +104,7 @@ export function readLedger(invoice) {
     billerName: invoice.invoicer?.business_name || '',
     totalCents: toCents(invoice.amount?.value ?? '0'),
     dueCents: toCents(invoice.due_amount?.value ?? '0'),
-    payments: (invoice.payments?.transactions || []).map((t) => ({ paymentId: t.payment_id || null, type: t.type, method: t.method, cents: toCents(t.amount.value) })),
+    payments: (invoice.payments?.transactions || []).map((t) => ({ paymentId: t.payment_id || null, captureRef: captureRefOf(t), type: t.type, method: t.method, cents: toCents(t.amount.value) })),
     refunds: (invoice.refunds?.transactions || []).map((r) => ({ refundId: r.refund_id, cents: toCents(r.amount.value) })),
     payPageLink: invoice.links?.find((l) => l.rel === 'invoice-pay-page')?.href || null,
   }

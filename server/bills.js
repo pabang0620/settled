@@ -69,7 +69,7 @@ export function decideRoute({ biller, ledger, reconciliation, sponsorable = fals
 // Only a holder capture that the app made AND recorded on the ledger counts. Everything else on the ledger does not.
 export function selfPaidCents(bill, ledger) {
   const ids = bill.holder.captureId && bill.holder.ledgerRecorded ? [bill.holder.captureId] : []
-  return ledger.payments.filter((p) => ids.includes(p.paymentId) && p.paymentId !== bill.match.captureId).reduce((s, p) => s + p.cents, 0)
+  return ledger.payments.filter((p) => ids.includes(p.captureRef) && p.captureRef !== bill.match.captureId).reduce((s, p) => s + p.cents, 0)
 }
 
 export const holderRefundedOnLedger = (bill, ledger) => ledger.refunds.length > 0 && !!bill.holder.captureId

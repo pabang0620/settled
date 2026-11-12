@@ -1,4 +1,4 @@
-import { dayLabel, timeLabel, usd, windowWords } from '../api.js'
+import { dayLabel, timeLabel, usd, windowWords, dueWords } from '../api.js'
 
 // A card is short on purpose: four lines up front, the risks one click away.
 export default function MatchCard({ card, index, total, windowMinutes, shortened, matchMode, busy, onHold, onSkip }) {
@@ -11,7 +11,7 @@ export default function MatchCard({ card, index, total, windowMinutes, shortened
         {total > 1 && <span className="tiny muted"> Card {index + 1} of {total}</span>}
       </header>
       <h4>{card.billerName} - {card.category} - {card.region}</h4>
-      <p className="tiny">{card.invoiceNumber} {card.accountMask} - due {dayLabel(card.dueDate)}{card.urgency?.kind === 'shutoff' && <> - shutoff {dayLabel(card.urgency.date)}{days != null && days >= 0 && <> (in {days} days)</>}</>}</p>
+      <p className="tiny">{card.invoiceNumber} {card.accountMask} - {dueWords(card.dueDate)}{card.urgency?.kind === 'shutoff' && <> - shutoff {dayLabel(card.urgency.date)}{days != null && days >= 0 && <> (in {days} days)</>}</>}</p>
       <p>{usd(card.holderPaidCents)} already paid on this invoice through Settled by the account holder's PayPal login ({card.noRefundsSoFar ? 'no refunds so far' : 'refund recorded'})</p>
       <p><strong>Your match: {usd(card.matchCents)} to {card.billerName}</strong> - closes the bill</p>
       {capture

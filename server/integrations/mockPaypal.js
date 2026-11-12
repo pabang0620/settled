@@ -114,7 +114,7 @@ export function mockReverseCapture(captureId) {
   if (!capture) throw new Error(`PayPal: RESOURCE_NOT_FOUND capture ${captureId}`)
   capture.refunded = toCents(capture.amount.value)
   for (const invoice of state.invoices.values()) {
-    const tx = invoice.payments.transactions.find((t) => t.payment_id === captureId)
+    const tx = invoice.payments.transactions.find((t) => t.note === `Settled capture ${captureId}`)
     if (!tx) continue
     invoice.refunds.transactions.push({ refund_id: mockId(10), type: 'PAYPAL', method: 'PAYPAL', amount: tx.amount, refund_date: iso().slice(0, 10) })
     invoice.refundedCents += toCents(tx.amount.value)
@@ -182,13 +182,15 @@ export const mockInvoicing = {
   },
   recordPayment({ invoice_id, payment_id, method, amount, note }) {
     const invoice = mustInvoice(invoice_id)
-    if (method === 'PAYPAL' && !payment_id) throw new Error('PayPal: payment_id required for PAYPAL payments')
+    // Same as the sandbox (2026-11-12): a payment_id is looked up and not found; entries are EXTERNAL with an EXTR- id.
+    if (payment_id) throw new Error('PayPal: RESOURCE_NOT_FOUND The specified resource does not exist.')
     if (['PAID', 'MARKED_AS_PAID', 'CANCELLED', 'DRAFT'].includes(invoice.status)) throw new Error(`PayPal: INVALID_INVOICE_STATUS ${invoice.status}`)
     const cents = toCents(amount.value)
     if (cents <= 0 || cents > toCents(invoice.due_amount.value)) throw new Error('PayPal: INVALID_PAYMENT_AMOUNT')
-    invoice.payments.transactions.push({ payment_id, type: method === 'PAYPAL' ? 'PAYPAL' : 'EXTERNAL', method, note, amount: { ...amount }, payment_date: iso().slice(0, 10) })
+    const id = `EXTR-${mockId(17)}`
+    invoice.payments.transactions.push({ payment_id: id, type: 'EXTERNAL', method, ...(note ? { note } : {}), amount: { ...amount }, payment_date: iso().slice(0, 10) })
     refreshInvoice(invoice)
-    return { payment_id }
+    return { payment_id: id }
   },
 }
 

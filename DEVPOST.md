@@ -31,8 +31,8 @@ A mid-size water or power utility that already sends PayPal invoices and runs a 
 
 | Today | Needs PayPal or a partner |
 |---|---|
-| Payee orders captured on another merchant account in the PayPal Sandbox, a hold authorized, captured and voided as the biller, a refund, idempotent create (ids below) | The biller app's Invoicing feature to record both payments on the invoice and reach PAID in the sandbox (verified on the stand-in only) |
-| The full flow, holder part to PAID, on a stand-in with PayPal's response shapes | Onboarding a real utility as a PayPal merchant |
+| Payee orders captured on another merchant account in the PayPal Sandbox, a hold authorized, captured and voided as the biller, a refund, idempotent create (ids below) | The Invoicing feature on the separate Riverside app, so the same invoice record runs with a biller that is not the app's own account |
+| The full flow inside the app in the PayPal Sandbox: holder pays and approves on PayPal, a patron in another session holds and approves, the settle job captures, both captures are recorded and the invoice is closed (INV2-46D3-DRWW-CZ9Z-EUK3 `MARKED_AS_PAID`, captures 1XA83390EB780180D and 8W5514277L700964E). The biller there is the app's own sandbox business account. A release voided authorization 38C66344V0654964E | Onboarding a real utility as a PayPal merchant |
 | Claude Sonnet's real runs (recorded in the app) reading the papers and planning, with a hidden instruction reported and not followed | The hosted Claude API path (only the local account path was run) |
 | | Refund and dispute webhooks (today the settle job polls) |
 
@@ -49,7 +49,7 @@ A mid-size water or power utility that already sends PayPal invoices and runs a 
 
 - The sandbox showed things a fake never would. Voiding an authorization returns 204 with no body and the SDK raised a `DecodeError` on that success; the adapter now settles it by reading the authorization. The Agent Toolkit reports failures as `{ok:false,...}`, and we had treated a 404 as a success until a live run showed it.
 - A shared sandbox app can authorize and capture for a payee but gets 403 when it tries to void. Releasing a hold needs the biller's own app credentials. We added `MATCH_MODE=capture_after_window` and a startup warning for setups without them.
-- Our sandbox biller app has no Invoicing feature, so recording both payments on the biller's invoice and reaching PAID is verified in the stand-in only.
+- Invoicing does not accept a capture id as the recorded payment's `payment_id` (404, even on the invoicer's own capture) and stores every recorded payment as `EXTERNAL`; two of them make the invoice `MARKED_AS_PAID`. A ledger check keyed on `payment_id` would never have seen our own payment, so the app now carries the capture id in the entry's note and will not record the same capture twice.
 - Keeping a hidden instruction refused for the right reason, and proving it with a test where the instruction is the only failing check.
 
 ## Accomplishments that we're proud of

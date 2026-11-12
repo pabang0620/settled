@@ -10,6 +10,7 @@
     "test": "FORCE_MOCK=1 LLM_BACKEND= node --test test/*.test.js",
     "smoke:sdk": "node scripts/sdk-smoke.js",
     "demo:video": "npm run build && FORCE_MOCK=1 LLM_BACKEND= HOLDER_SETTLE_MINUTES=1 SETTLE_JOB_SECONDS=5 node server/index.js",
+    "demo:sandbox": "npm run build && FORCE_MOCK=0 LLM_BACKEND= PUBLIC_FEED=1 HOLDER_SETTLE_MINUTES=1 SETTLE_JOB_SECONDS=5 node server/index.js",
     "record:runs": "LLM_BACKEND=account FORCE_MOCK=0 PAYPAL_CLIENT_ID= PAYPAL_CLIENT_SECRET= ANTHROPIC_API_KEY= node scripts/record-runs.js"
   },
   "license": "MIT",

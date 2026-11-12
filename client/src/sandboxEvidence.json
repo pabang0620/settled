@@ -30,6 +30,34 @@
       ]
     },
     {
+      "check": "PAID",
+      "what": "The app in sandbox mode, end to end: holder pays and approves on PayPal, a patron in another session holds and approves, the settle job captures after the window, both captures recorded on the invoice (biller = the app's own sandbox business account)",
+      "status": "pass",
+      "ids": [
+        "invoice INV2-46D3-DRWW-CZ9Z-EUK3 (INV-5805) MARKED_AS_PAID, due 0.00",
+        "holder order 918156118R290951V, capture 1XA83390EB780180D $60.00",
+        "patron order 6XA11803904094326, authorization 1J127616CJ147762H CAPTURED, capture 8W5514277L700964E $60.00"
+      ]
+    },
+    {
+      "check": "V3/V7",
+      "what": "record_payment_for_invoice: a payment_id is refused (404); entries are EXTERNAL, method PAYPAL, so the app keeps the capture id in the note",
+      "status": "pass",
+      "ids": [
+        "EXTR-5E570351PF431291C note 'Settled capture 1XA83390EB780180D'",
+        "EXTR-4JN06872M7730020Y note 'Settled capture 8W5514277L700964E'"
+      ]
+    },
+    {
+      "check": "Release",
+      "what": "The app in sandbox mode: patron releases a hold, nothing charged",
+      "status": "pass",
+      "ids": [
+        "holder capture 0XL33347CL743351W recorded, invoice INV2-DQHK-Q9KY-WMA7-DN57 PARTIALLY_PAID",
+        "authorization 38C66344V0654964E VOIDED"
+      ]
+    },
+    {
       "check": "V8",
       "what": "Match hold: AUTHORIZE order for Riverside, approved as patron, authorized, then captured",
       "status": "pass",
@@ -83,10 +111,10 @@
     },
     {
       "check": "V3",
-      "what": "Record both payments on the biller invoice and reach PAID",
+      "what": "Invoice record with the separate Riverside app's own credentials",
       "status": "blocked",
       "ids": [
-        "Riverside app has no Invoicing feature (403 on record_payment_for_invoice); verified in the stand-in only"
+        "that app has no Invoicing feature yet (403); a person enables it in the developer dashboard"
       ]
     }
   ]

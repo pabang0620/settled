@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { api, dayLabel, settleWords, timeLabel, usd, windowWords } from '../api.js'
+import { api, dayLabel, settleWords, timeLabel, usd, windowWords, dueWords } from '../api.js'
 
 const STEPS = ['Your part', 'A patron holds the match', 'Charged to the biller', 'Paid']
 const CAPTURE_STEPS = ['Your part', 'The window runs, then a patron matches', 'Charged to the biller', 'Paid']
 
-function progress(bill) {
+// Light a step only when it is true: in hold mode "A patron holds the match" waits for an actual hold.
+function progress(bill, matchMode) {
   if (bill.closed) return 3
   if (bill.match.status === 'held') return 1
-  if (bill.holder.status === 'captured') return 1
+  if (bill.holder.status === 'captured' && matchMode === 'capture_after_window') return 1
   return 0
 }
 
@@ -18,7 +19,7 @@ export default function HolderBill({ bill, mockMode, windowShortened, settleJobS
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [settleNote, setSettleNote] = useState('')
-  const step = progress(bill)
+  const step = progress(bill, matchMode)
   const selected = bill.shareOptions.find((o) => o.share === share)
   const canPay = bill.statusClass === 'payable' && bill.holder.status !== 'captured' && bill.paymentModes.includes('payee_order')
 
@@ -39,7 +40,7 @@ export default function HolderBill({ bill, mockMode, windowShortened, settleJobS
     <section className="panel holder-panel">
       <h3><span className="label blue">Holder's part</span> {bill.billerName} {bill.invoiceNumber} {bill.accountMask}</h3>
       <p>
-        Your bill: <strong>{usd(bill.totalCents)}</strong> - due {dayLabel(bill.dueDate)}
+        Your bill: <strong>{usd(bill.totalCents)}</strong> - {dueWords(bill.dueDate)}
         {bill.disconnectDate && <> - shutoff {dayLabel(bill.disconnectDate)} <span className="tiny muted">(set by {bill.billerName})</span></>}
         {' '}- ledger status <code>{bill.ledgerStatus}</code>
       </p>

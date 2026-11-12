@@ -37,7 +37,7 @@ export default function PatronHolds({ state, onChanged, onPay }) {
           <h4>{h.billerName} {h.invoiceNumber} - {usd(h.matchCents)}</h4>
           <p>{STATUS_TEXT[h.status]}{h.status === 'voided' && h.voidReason ? ` (${h.voidReason.replaceAll('_', ' ')})` : ''}. {h.holderAlias} paid {usd(h.holderPaidCents)}.</p>
           {h.status === 'held' && <p className="tiny">Charged after <strong>{timeLabel(h.chargeAfter)}</strong> if their part stays paid until then. The settle job checks every {state.settleJobSeconds} seconds and charges it on its own.</p>}
-          {settleNote[h.billId] && <p className="tiny">{settleNote[h.billId]}</p>}
+          {h.status === 'held' && settleNote[h.billId] && <p className="tiny">{settleNote[h.billId]}</p>}
           {h.story && <p className="tiny">Story (unverified): {h.story.text}</p>}
           {h.notices.map((n) => <p key={n} className="notice">{n}</p>)}
           <div className="row">
